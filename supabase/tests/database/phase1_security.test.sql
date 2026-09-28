@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(33);
+select plan(43);
 
 -- fixtures ---------------------------------------------------------------------
 insert into auth.users (id, email, is_anonymous) values
@@ -12,7 +12,8 @@ insert into auth.users (id, email, is_anonymous) values
   ('22222222-2222-2222-2222-222222222222', 'owner-b@example.com', false),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', null, true),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', null, true),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', null, true);
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', null, true),
+  ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'staff-a@example.com', false);
 
 create temp table ctx (k text primary key, v text);
 grant all on ctx to anon, authenticated;
@@ -41,6 +42,22 @@ select is((select char_length(qr_token) from dining_tables where label = 'A4'), 
 insert into ctx select 'token', qr_token from dining_tables where label = 'A4';
 select throws_ok($$ insert into dining_tables (restaurant_id, label, qr_token) select v::uuid, 'B1', 'chosen' from ctx where k = 'rest_a' $$,
   '42501', null, 'clients cannot choose a qr_token');
+
+-- ============================ floor staff of A (role = staff) =====================
+reset role;
+insert into restaurant_members (restaurant_id, user_id, role)
+  select v::uuid, 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'staff' from ctx where k = 'rest_a';
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"dddddddd-dddd-dddd-dddd-dddddddddddd","role":"authenticated","is_anonymous":false}';
+select is_empty($$ update menu_items set price_cents = 0 where name = 'Grilled Salmon' returning id $$,
+  'floor staff cannot change prices');
+select lives_ok($$ select public.set_item_availability((select v::uuid from ctx where k = 'item_86'), false) $$,
+  'floor staff can 86 an item through the RPC');
+
+-- ============================ token missing is_anonymous claim ===================
+set local request.jwt.claims to '{"sub":"cccccccc-cccc-cccc-cccc-cccccccccccc","role":"authenticated"}';
+select throws_ok($$ select public.create_restaurant('No Claim', 'no-claim') $$, '42501', null,
+  'missing is_anonymous claim fails closed');
 
 -- ============================ owner B (other restaurant) ==========================
 set local request.jwt.claims to '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated","is_anonymous":false}';
@@ -99,6 +116,8 @@ select is_empty($$ update orders set status = 'served' returning id $$, 'diner c
 set local request.jwt.claims to '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated","is_anonymous":true}';
 select is((select session_id::text from public.join_table((select v from ctx where k = 'token'))),
           (select v from ctx where k = 'session'), 'second diner lands in the same open session');
+select is((select session_id::text from public.join_table((select v from ctx where k = 'token'), 'Bea')),
+          (select v from ctx where k = 'session'), 're-scanning keeps the diner in the same session');
 select is((select count(*)::int from orders), 0, 'Phase 1: diners only see their own orders');
 
 -- ============================ anonymous diner 3 (not seated) ======================
@@ -117,6 +136,21 @@ select throws_ok($$ update orders set status = 'submitted' where id = (select v:
 select throws_ok($$ update orders set subtotal_cents = 1 where id = (select v::uuid from ctx where k = 'order_1') $$,
   '42501', null, 'staff cannot rewrite order totals');
 
+select throws_ok($$ delete from dining_tables where label = 'A4' $$, '23503', null,
+  'a table with order history cannot be deleted');
+
+select lives_ok($$ select public.close_table_session((select v::uuid from ctx where k = 'session')) $$,
+  'owner can close the table session');
+
+-- diner 1 tries to keep ordering on the closed session
+set local request.jwt.claims to '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated","is_anonymous":true}';
+select throws_ok($$ select public.place_order((select v::uuid from ctx where k = 'session'),
+                    jsonb_build_array(jsonb_build_object('menu_item_id', (select v from ctx where k = 'item_ok'), 'quantity', 1))) $$,
+  'P0001', null, 'closed session rejects new orders');
+select isnt((select session_id::text from public.join_table((select v from ctx where k = 'token'))),
+            (select v from ctx where k = 'session'), 'scanning after close opens a new session');
+
+set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated","is_anonymous":false}';
 select lives_ok($$ select public.rotate_table_qr((select id from dining_tables where label = 'A4')) $$,
   'owner can rotate a table QR');
 
@@ -129,6 +163,17 @@ select throws_ok($$ select * from public.join_table((select v from ctx where k =
 set local role anon;
 set local request.jwt.claims to '{"role":"anon"}';
 select throws_ok($$ select count(*) from orders $$, '42501', null, 'signed-out visitor cannot touch orders');
+
+-- ============================ future objects are not auto-exposed ===================
+reset role;
+create function public.zz_future_rpc() returns int language sql as 'select 1';
+create table public.zz_future_tbl (id int);
+select ok(not has_function_privilege('anon', 'public.zz_future_rpc()', 'execute')
+      and not has_function_privilege('authenticated', 'public.zz_future_rpc()', 'execute'),
+  'new functions are not executable by API roles by default');
+select ok(not has_table_privilege('anon', 'public.zz_future_tbl', 'select,truncate')
+      and not has_table_privilege('authenticated', 'public.zz_future_tbl', 'select,truncate'),
+  'new tables are not readable or truncatable by API roles by default');
 
 select * from finish();
 rollback;

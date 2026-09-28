@@ -17,6 +17,6 @@ Briefs 02 to 04 get written in full after the previous PR merges, so each one re
 
 - Printed QR on a real iPhone (Safari): menu is interactive in under 3 seconds on restaurant-grade Wi-Fi (target to validate, not a guarantee)
 - The order appears on the staff board within 2 seconds (p95 over 20 trial orders), and each status change appears on the diner's phone
-- `supabase test db` green (33+ tests); Playwright happy path green in CI
+- `supabase test db` green (43+ tests); Playwright happy path green in CI
 - Supabase security advisor: 0 errors. No secrets in git history (gitleaks).
 - Ari has run one "fake dinner" with 2 or more phones at one table

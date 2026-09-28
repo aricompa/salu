@@ -17,13 +17,15 @@
 -- =============================================================================
 
 -- 0. Exposure is opt-in: stop Supabase's legacy auto-grants on new objects.
+--    "revoke all" also covers TRUNCATE/REFERENCES/TRIGGER (TRUNCATE ignores RLS).
 alter default privileges for role postgres in schema public
-  revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+  revoke all on tables from anon, authenticated, service_role;
 alter default privileges for role postgres in schema public
-  revoke execute on functions from anon, authenticated, service_role;
+  revoke all on sequences from anon, authenticated, service_role;
 alter default privileges for role postgres in schema public
-  revoke usage, select on sequences from anon, authenticated, service_role;
-alter default privileges for role postgres in schema public
+  revoke all on functions from anon, authenticated, service_role;
+-- PUBLIC's EXECUTE on new functions is a global default; it can't be revoked per schema.
+alter default privileges for role postgres
   revoke execute on functions from public;
 
 create schema if not exists private;
@@ -84,7 +86,8 @@ create table public.table_sessions (
   status        public.session_status not null default 'open',
   opened_at     timestamptz not null default now(),
   closed_at     timestamptz,
-  foreign key (table_id, restaurant_id) references public.dining_tables (id, restaurant_id) on delete cascade,
+  -- restrict: a table with history can't be deleted (it would erase orders); deactivate it instead
+  foreign key (table_id, restaurant_id) references public.dining_tables (id, restaurant_id) on delete restrict,
   unique (id, restaurant_id),
   check ((status = 'closed') = (closed_at is not null))
 );
@@ -145,7 +148,8 @@ create table public.orders (
   ready_at        timestamptz,
   served_at       timestamptz,
   cancelled_at    timestamptz,
-  foreign key (session_id, restaurant_id) references public.table_sessions (id, restaurant_id) on delete cascade
+  -- restrict: orders are financial records and are never hard-deleted
+  foreign key (session_id, restaurant_id) references public.table_sessions (id, restaurant_id) on delete restrict
 );
 create index orders_restaurant_feed_idx on public.orders (restaurant_id, submitted_at desc);
 create index orders_session_idx on public.orders (session_id);
@@ -189,7 +193,8 @@ create function private.is_anonymous()
 returns boolean
 language sql stable set search_path = ''
 as $$
-  select coalesce(((select auth.jwt()) ->> 'is_anonymous')::boolean, false);
+  -- fail closed: a token without the claim is treated as anonymous
+  select coalesce(((select auth.jwt()) ->> 'is_anonymous')::boolean, true);
 $$;
 
 revoke all on function private.is_member(uuid, public.member_role[]) from public, anon;
@@ -272,6 +277,12 @@ begin
     raise exception 'staff account required' using errcode = '42501';
   end if;
 
+  -- slug-squatting guard; raise when a real multi-location customer needs more
+  if (select count(*) from public.restaurant_members m
+      where m.user_id = v_uid and m.role = 'owner') >= 5 then
+    raise exception 'restaurant limit reached' using errcode = 'P0001', hint = 'restaurant_limit';
+  end if;
+
   insert into public.restaurants (name, slug) values (trim(p_name), lower(trim(p_slug)))
   returning id into v_id;
   insert into public.restaurant_settings (restaurant_id) values (v_id);
@@ -300,18 +311,18 @@ begin
     raise exception 'table not found' using errcode = 'P0002', hint = 'invalid_table';
   end if;
 
-  -- get or create the single open session for this table (race-safe via partial unique index)
-  insert into public.table_sessions (restaurant_id, table_id)
+  -- get or create the single open session for this table in one atomic statement
+  -- (the no-op DO UPDATE makes RETURNING yield the existing row's id)
+  insert into public.table_sessions as ts (restaurant_id, table_id)
   values (v_table.restaurant_id, v_table.id)
-  on conflict (table_id) where status = 'open' do nothing;
+  on conflict (table_id) where status = 'open'
+    do update set opened_at = ts.opened_at
+  returning ts.id into v_session;
 
-  select s.id into v_session from public.table_sessions s
-  where s.table_id = v_table.id and s.status = 'open';
-
-  insert into public.session_participants (session_id, user_id, display_name)
+  insert into public.session_participants as sp (session_id, user_id, display_name)
   values (v_session, v_uid, nullif(trim(p_display_name), ''))
   on conflict on constraint session_participants_pkey do update
-    set display_name = coalesce(excluded.display_name, public.session_participants.display_name);
+    set display_name = coalesce(excluded.display_name, sp.display_name);
 
   return query
     select v_session, r.id, r.name, r.slug, v_table.label
@@ -337,7 +348,8 @@ begin
     raise exception 'sign-in required' using errcode = '42501';
   end if;
 
-  select * into v_session from public.table_sessions s where s.id = p_session_id;
+  -- FOR SHARE: a concurrent close_table_session waits for this order (or vice versa)
+  select * into v_session from public.table_sessions s where s.id = p_session_id for share;
   if not found or not private.is_participant(p_session_id) then
     raise exception 'not seated at this table' using errcode = '42501', hint = 'not_participant';
   end if;
@@ -353,9 +365,13 @@ begin
     raise exception 'order must have 1-30 lines' using errcode = '22023', hint = 'invalid_items';
   end if;
 
-  -- basic abuse guard: max 5 orders per diner per 2 minutes
+  -- abuse guards (serialized per diner so concurrent calls can't slip past the count):
+  --   max 5 orders per diner per 2 minutes; max 40 orders per table session per 15 minutes
+  perform pg_advisory_xact_lock(hashtext('place_order:' || v_uid::text));
   if (select count(*) from public.orders o
-      where o.placed_by = v_uid and o.submitted_at > now() - interval '2 minutes') >= 5 then
+      where o.placed_by = v_uid and o.submitted_at > now() - interval '2 minutes') >= 5
+  or (select count(*) from public.orders o
+      where o.session_id = p_session_id and o.submitted_at > now() - interval '15 minutes') >= 40 then
     raise exception 'too many orders, slow down' using errcode = 'P0001', hint = 'rate_limited';
   end if;
 
@@ -422,6 +438,23 @@ begin
 end;
 $$;
 
+-- Any member (incl. floor staff) can 86 / un-86 an item. Price and name edits stay owner/manager-only.
+create function public.set_item_availability(p_item_id uuid, p_available boolean)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare v_restaurant uuid;
+begin
+  select mi.restaurant_id into v_restaurant from public.menu_items mi where mi.id = p_item_id;
+  if v_restaurant is null or not private.is_member(v_restaurant) then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  update public.menu_items set is_available = p_available where id = p_item_id;
+end;
+$$;
+
+revoke all on function public.set_item_availability(uuid, boolean)     from public, anon;
+grant execute on function public.set_item_availability(uuid, boolean)  to authenticated;
 revoke all on function public.create_restaurant(text, text)            from public, anon;
 revoke all on function public.join_table(text, text)                   from public, anon;
 revoke all on function public.place_order(uuid, jsonb, text)           from public, anon;
@@ -518,11 +551,11 @@ create policy items_public_read on public.menu_items
 create policy items_manager_insert on public.menu_items
   for insert to authenticated
   with check (private.is_member(restaurant_id, array['owner', 'manager']::public.member_role[]));
--- any member (incl. staff) may update, so floor staff can 86 an item; column grants limit what changes
-create policy items_member_update on public.menu_items
+-- owners/managers edit items; floor staff 86 items through set_item_availability()
+create policy items_manager_update on public.menu_items
   for update to authenticated
-  using (private.is_member(restaurant_id))
-  with check (private.is_member(restaurant_id));
+  using (private.is_member(restaurant_id, array['owner', 'manager']::public.member_role[]))
+  with check (private.is_member(restaurant_id, array['owner', 'manager']::public.member_role[]));
 create policy items_manager_delete on public.menu_items
   for delete to authenticated
   using (private.is_member(restaurant_id, array['owner', 'manager']::public.member_role[]));

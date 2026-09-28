@@ -12,7 +12,7 @@ When this merges, Brief 02 (menu, tables, QR, settings) starts on a codebase whe
 
 1. `CLAUDE.md`: the invariants are non-negotiable
 2. `docs/phase-1/SCAFFOLD-PLAN.md`: target tree, dependencies, config, build order
-3. `supabase/migrations/20260928000000_phase1_core.sql`: the schema. It's already written and was tested against Postgres 16 with pgTAP (33 of 33 passing). Don't rewrite it. If you find a defect, fix it in a **new** migration and explain why in the PR.
+3. `supabase/migrations/20260928000000_phase1_core.sql`: the schema. It's already written and was tested against Postgres 16 with pgTAP (43 of 43 passing, including fixes from an independent security review). Don't rewrite it. If you find a defect, fix it in a **new** migration and explain why in the PR.
 4. `supabase/tests/database/phase1_security.test.sql`: the security contract
 
 ## Tasks and acceptance criteria
@@ -26,7 +26,7 @@ When this merges, Brief 02 (menu, tables, QR, settings) starts on a codebase whe
 - `supabase init`, then apply the `config.toml` edits from the scaffold plan (anonymous sign-ins on, email confirmations on, anonymous rate limit raised). Verify key names against the generated file.
 - Keep the existing migration and test in place. Write `supabase/seed.sql` with one demo restaurant (`demo-bistro`), 3 categories, about 12 items (one marked unavailable), and 4 tables. The seed may insert directly as the postgres role.
 - Generate `src/lib/db/types.ts`.
-- **Done when** `npm run db:reset && npm run db:test` shows 33 of 33 passing, and `supabase db lint` (or the dashboard advisors, if you run Studio locally) reports no security errors.
+- **Done when** `npm run db:reset && npm run db:test` shows 43 of 43 passing, and `supabase db lint` (or the dashboard advisors, if you run Studio locally) reports no security errors.
 
 ### 3. Supabase clients and session refresh (Next.js 16)
 - `src/lib/supabase/{client,server,proxy}.ts` following Supabase's current Next.js SSR guide: publishable key, `getAll`/`setAll` cookies, and `getClaims()` in the proxy.
