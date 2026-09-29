@@ -1,26 +1,96 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens. Components use these via Tailwind utilities (bg-surface,
+ * text-muted, border-border, ...). No raw hex outside this file.
+ * Every text token meets WCAG AA (4.5:1) on surface and surface-raised;
+ * border and focus meet 3:1. Brand is a neutral placeholder until Q7 is decided.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --salu-brand: #334155;
+  --salu-brand-contrast: #ffffff;
+  --salu-surface: #ffffff;
+  --salu-surface-raised: #f5f6f8;
+  --salu-border: #737b89;
+  --salu-text: #111827;
+  --salu-text-muted: #4b5563;
+  --salu-success: #15803d;
+  --salu-warning: #a16207;
+  --salu-danger: #b91c1c;
+  --salu-focus: #2563eb;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Portal forces dark with data-theme="dark"; diner pages follow the device. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --salu-brand: #cbd5e1;
+    --salu-brand-contrast: #0f1117;
+    --salu-surface: #0f1117;
+    --salu-surface-raised: #1a1d26;
+    --salu-border: #6b7280;
+    --salu-text: #f3f4f6;
+    --salu-text-muted: #a1a7b3;
+    --salu-success: #4ade80;
+    --salu-warning: #facc15;
+    --salu-danger: #f87171;
+    --salu-focus: #93c5fd;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+[data-theme="dark"] {
+  color-scheme: dark;
+  --salu-brand: #cbd5e1;
+  --salu-brand-contrast: #0f1117;
+  --salu-surface: #0f1117;
+  --salu-surface-raised: #1a1d26;
+  --salu-border: #6b7280;
+  --salu-text: #f3f4f6;
+  --salu-text-muted: #a1a7b3;
+  --salu-success: #4ade80;
+  --salu-warning: #facc15;
+  --salu-danger: #f87171;
+  --salu-focus: #93c5fd;
+}
+
+@theme inline {
+  --color-brand: var(--salu-brand);
+  --color-brand-contrast: var(--salu-brand-contrast);
+  --color-surface: var(--salu-surface);
+  --color-surface-raised: var(--salu-surface-raised);
+  --color-border: var(--salu-border);
+  --color-text: var(--salu-text);
+  --color-muted: var(--salu-text-muted);
+  --color-success: var(--salu-success);
+  --color-warning: var(--salu-warning);
+  --color-danger: var(--salu-danger);
+  --color-focus: var(--salu-focus);
+
+  --radius-card: 12px;
+  --radius-chip: 999px;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-surface font-sans text-text antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--salu-focus);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
