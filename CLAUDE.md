@@ -21,6 +21,7 @@ If these disagree, stop and ask Ari. Don't guess.
 - **Tailwind CSS v4.** CSS-first config: `@import "tailwindcss";` plus `@theme` in `globals.css`. Never write v3 `@tailwind base/components/utilities` directives. They caused the broken dark theme in the February prototype.
 - **Supabase**: Postgres 17, Auth (email+password for staff, **anonymous sign-ins for diners**), Realtime (Postgres Changes on `orders`)
 - **@supabase/ssr** for cookie sessions, **zod** for validation, **qrcode** for QR images
+- **Cloudflare Turnstile** on sign-in and sign-up (from Brief 03; see `docs/phase-1/README.md`)
 - **Vitest** for unit tests, **Playwright** for e2e, **pgTAP** via `supabase test db` for database tests
 - **Vercel** hosting, GitHub-connected. Every PR gets a preview deployment.
 - Later phases only (don't install yet): Stripe, web push, Sentry
@@ -70,6 +71,7 @@ Ari treats security as a first-rate requirement, even in development. Violating 
 - **Money:** integer cents everywhere. Format only through `src/lib/money.ts`. Never use floats for currency.
 - **Time:** `timestamptz` in the DB. Render in the restaurant's timezone for staff and the device timezone for diners.
 - **Generated types:** import DB types from `src/lib/db/types.ts` (generated). Never hand-write row types.
+- **All Supabase access goes through `src/lib/`.** Only files under `src/lib/` import `@supabase/*` or call the Supabase client. Pages, components and Server Actions call functions in `src/lib/` (e.g. `src/lib/orders.ts`, `src/lib/realtime.ts`). This is the portability seam: if Salu ever leaves hosted Supabase, the change stays inside `src/lib/`. The pre-commit hook enforces the import rule.
 - **Pages that touch auth render dynamically.** Never statically cache pages with user-specific or anonymous-user data (Supabase flags metadata leaking across anonymous users under static rendering).
 
 ## Database workflow
@@ -88,9 +90,16 @@ Ari treats security as a first-rate requirement, even in development. Violating 
 - **Copy:** short, warm, plain. "Your order's in. The kitchen has it." beats "Order submitted successfully."
 - **Handle every state:** loading (skeletons), empty, error, offline.
 
+## Guardrails
+
+- **Pre-commit hook** (`.githooks/pre-commit`) blocks the mechanical violations of this file on staged lines: `middleware.ts`, `.env` files, secret key literals, secret-looking `NEXT_PUBLIC_` names, Tailwind v3 directives, Supabase imports outside `src/lib/`, raw hex colors in components. It warns on `getSession()`, hard deletes, direct order inserts, `force-static` and float-looking money. `npm install` activates it (the `prepare` script sets `core.hooksPath`). **Never use `--no-verify` without asking Ari.**
+- **Spec-reconciliation agent** (`.claude/agents/spec-reconciliation.md`) is a read-only audit of the code against this file, the active brief, the scaffold plan and the PRD. Run it before opening every PR.
+- **Falsification check** for new security tests: break the policy or RPC, watch the pgTAP test fail, restore it. Say in the PR which tests you checked this way.
+
 ## Definition of done (every PR)
 
 - [ ] `npm run check` passes locally. CI is green.
+- [ ] Spec-reconciliation agent run; its summary line is in the PR description and every divergence is fixed or explained.
 - [ ] New or changed DB behavior has pgTAP tests, including negative cases.
 - [ ] Happy-path Playwright test updated when a user flow changes.
 - [ ] No secrets in the diff. `.env.example` updated if env vars changed.

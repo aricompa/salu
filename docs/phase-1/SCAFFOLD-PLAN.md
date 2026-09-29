@@ -16,6 +16,9 @@ This is the target shape of the repo at the end of Phase 1, plus the order to ge
 ```
 salu/
 ├─ CLAUDE.md
+├─ .githooks/pre-commit          # constraint guard (see CLAUDE.md > Guardrails)
+├─ .claude/agents/
+│  └─ spec-reconciliation.md     # read-only spec audit, run before each PR
 ├─ .env.example                  # committed; placeholders only
 ├─ .github/workflows/ci.yml      # lint, typecheck, unit, db tests, build
 ├─ docs/
@@ -100,6 +103,7 @@ Nothing else without asking. No UI kit in Phase 1: the handful of primitives liv
 **`package.json` scripts**
 ```json
 {
+  "prepare": "git config core.hooksPath .githooks || true",
   "dev": "next dev",
   "build": "next build",
   "start": "next start",

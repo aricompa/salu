@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Salu constraint guard. Enforces the mechanical rules in CLAUDE.md on commit.
+# Scans ONLY added lines in the staged diff, so it catches what you introduce
+# and ignores anything already in the tree.
+# Activated by `npm install` (the "prepare" script sets core.hooksPath=.githooks).
+# Bypass: git commit --no-verify. Claude Code must ask Ari before bypassing.
+#
+# Division of labor: this hook owns SYNTACTIC rules a regex can decide.
+# Semantic rules (RLS intent, state machine, spec drift) belong to the
+# spec-reconciliation agent (.claude/agents/spec-reconciliation.md).
+
+set -uo pipefail
+
+fail=0
+
+report() { # report <block|warn> <label> <hits>
+  if [ "$1" = "block" ]; then
+    echo "  ✗ BLOCK  $2"; fail=1
+  else
+    echo "  ⚠ WARN   $2"
+  fi
+  printf '%s\n' "$3" | sed 's/^/         /'
+}
+
+# Emit "path:line:content" for every ADDED line in staged files matching the pathspecs.
+added_lines() {
+  git diff --cached -U0 --diff-filter=AM -- "$@" | awk '
+    /^\+\+\+ b\// { file = substr($0, 7); next }
+    /^@@/ { match($0, /\+[0-9]+/); ln = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
+    /^\+/ && !/^\+\+\+/ { print file ":" ln ":" substr($0, 2); ln++; next }
+  '
+}
+
+# scan <block|warn> <regex> <label> [exclude-path-regex] -- <pathspecs...>
+scan() {
+  local level="$1" re="$2" label="$3" exclude="$4"; shift 5
+  local hits
+  hits=$(added_lines "$@" | grep -E -- "$re" || true)
+  if [ -n "$hits" ] && [ -n "$exclude" ]; then
+    hits=$(printf '%s\n' "$hits" | grep -Ev -- "$exclude" || true)
+  fi
+  [ -n "$hits" ] && report "$level" "$label" "$hits"
+  return 0
+}
+
+echo "── salu constraint guard ─────────────────────────────"
+
+# ── Staged file names ────────────────────────────────────
+staged=$(git diff --cached --name-only --diff-filter=ACR)
+
+hits=$(printf '%s\n' "$staged" | grep -E '(^|/)middleware\.(ts|js)$' || true)
+[ -n "$hits" ] && report block 'middleware.ts (Next 16 uses src/proxy.ts)' "$hits"
+
+hits=$(printf '%s\n' "$staged" | grep -E '(^|/)\.env[^/]*$' | grep -Ev '(^|/)\.env\.example$' || true)
+[ -n "$hits" ] && report block '.env file staged (only .env.example may be committed)' "$hits"
+
+# ── Secrets ──────────────────────────────────────────────
+scan block 'sb_secret_[A-Za-z0-9_-]{8,}' 'Supabase secret key literal' '' -- .
+scan block 'NEXT_PUBLIC_[A-Z0-9_]*(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD)' \
+  'NEXT_PUBLIC_ on a secret-looking name (invariant 6)' '' -- .
+scan block 'service_role' 'service_role in app code (secret key is not used in Phase 1)' '' -- 'src/*'
+
+# ── Architecture ─────────────────────────────────────────
+scan block '@tailwind[[:space:]]+(base|components|utilities)' \
+  'Tailwind v3 directive (use @import "tailwindcss" + @theme)' '' -- '*.css'
+scan block "from ['\"]@supabase/(supabase-js|ssr)['\"]" \
+  'Supabase import outside src/lib (all Supabase access goes through src/lib)' '^src/lib/' -- 'src/*'
+scan block "['\"\` (]#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})['\"\` ;)]" \
+  'raw hex color in a component (use design tokens)' '' -- 'src/*.tsx' 'src/*.ts'
+scan warn '\.getSession\(' \
+  'getSession(): never trust it for authorization; use getClaims() (invariant 7)' '' -- 'src/*'
+scan warn '\.delete\(\)' \
+  'hard delete: orders, sessions and tables with history are never deleted (invariant 5)' '' -- 'src/*'
+scan warn "from\(['\"]orders['\"]\)\.(insert|upsert)" \
+  'direct order write: orders are created only via place_order RPC (invariant 4)' '' -- 'src/*'
+scan warn "force-static" \
+  'static rendering: pages touching auth must render dynamically' '' -- 'src/*'
+scan warn 'parseFloat|toFixed\(2\)' \
+  'possible float money: use integer cents and src/lib/money.ts' '^src/lib/money\.ts:' -- 'src/*'
+
+echo "──────────────────────────────────────────────────────"
+
+if [ "$fail" -ne 0 ]; then
+  echo "Commit blocked by the rule(s) above. Fix, or ask Ari before using --no-verify."
+  exit 1
+fi
+exit 0
