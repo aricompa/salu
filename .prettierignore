@@ -6,3 +6,4 @@ playwright-report
 test-results
 *.md
 supabase/**/*.sql
+supabase/templates

@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for gitleaks
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint, types, format, unit tests
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run format:check
+          npm run test
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase (db, auth, api, realtime, mail only)
+        run: supabase start -x storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
+
+      - name: Database security tests (pgTAP)
+        run: supabase test db
+
+      - name: Database lint
+        run: supabase db lint --level warning --fail-on error
+
+      - name: Generated types are up to date
+        run: |
+          npm run db:types
+          git diff --exit-code -- src/lib/db/types.ts
+
+      - name: Write .env.local from local Supabase
+        run: |
+          supabase status -o env \
+            | sed -n -e 's/^API_URL=/NEXT_PUBLIC_SUPABASE_URL=/p' -e 's/^PUBLISHABLE_KEY=/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=/p' \
+            > .env.local
+          echo 'NEXT_PUBLIC_SITE_URL="http://localhost:3000"' >> .env.local
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

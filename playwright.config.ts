@@ -1,5 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Load local Supabase URL and publishable key (CI writes .env.local from `supabase status`).
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // No .env.local: helpers fall back to local defaults.
+}
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -12,7 +19,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
