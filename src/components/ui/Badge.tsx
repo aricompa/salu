@@ -15,7 +15,7 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-chip border px-2.5 py-0.5 text-sm font-medium",
+        "inline-flex shrink-0 items-center rounded-chip border px-2.5 py-0.5 text-sm font-medium whitespace-nowrap",
         tones[tone],
       )}
     >
