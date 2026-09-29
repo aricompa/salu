@@ -29,11 +29,15 @@ select is((select role::text from restaurant_members where user_id = auth.uid())
 
 insert into menu_categories (restaurant_id, name) select v::uuid, 'Mains' from ctx where k = 'rest_a';
 insert into menu_items (restaurant_id, category_id, name, price_cents)
-  select r.v::uuid, c.id, 'Grilled Salmon', 2400 from ctx r, menu_categories c where r.k = 'rest_a';
+  select r.v::uuid, c.id, 'Grilled Salmon', 2400 from ctx r, menu_categories c
+  where r.k = 'rest_a' and c.restaurant_id = r.v::uuid;
 insert into menu_items (restaurant_id, name, price_cents, is_available)
   select v::uuid, 'Lobster Roll', 3200, false from ctx where k = 'rest_a';
-insert into ctx select 'item_ok', id::text from menu_items where name = 'Grilled Salmon';
-insert into ctx select 'item_86', id::text from menu_items where name = 'Lobster Roll';
+-- scope lookups to restaurant A: menus are publicly readable and seed.sql has its own items
+insert into ctx select 'item_ok', m.id::text from menu_items m, ctx r
+  where r.k = 'rest_a' and m.restaurant_id = r.v::uuid and m.name = 'Grilled Salmon';
+insert into ctx select 'item_86', m.id::text from menu_items m, ctx r
+  where r.k = 'rest_a' and m.restaurant_id = r.v::uuid and m.name = 'Lobster Roll';
 
 select lives_ok($$ insert into dining_tables (restaurant_id, label, capacity) select v::uuid, 'A4', 4 from ctx where k = 'rest_a' $$,
   'owner can add a table');
