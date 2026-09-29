@@ -29,20 +29,8 @@ export async function confirmationLink(email: string, timeoutMs = 15_000): Promi
   throw new Error(`No confirmation email for ${email}`);
 }
 
-/**
- * Creates an anonymous (diner) session through the Auth API and returns it in
- * the cookie format @supabase/ssr reads, chunked the same way.
- */
-export async function anonymousSessionCookies(): Promise<Array<{ name: string; value: string }>> {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-    method: "POST",
-    headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) throw new Error(`anonymous sign-in failed: ${res.status} ${await res.text()}`);
-  const session = await res.json();
-  if (session.user?.is_anonymous !== true) throw new Error("expected an anonymous user");
-
+/** Encodes a session the way @supabase/ssr stores it: base64 cookie, chunked at 3180 chars. */
+function sessionCookies(session: unknown): Array<{ name: string; value: string }> {
   const name = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
   const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
   const CHUNK = 3180;
@@ -52,4 +40,39 @@ export async function anonymousSessionCookies(): Promise<Array<{ name: string; v
     chunks.push({ name: `${name}.${i}`, value: value.slice(i * CHUNK, (i + 1) * CHUNK) });
   }
   return chunks;
+}
+
+async function authPost(path: string, body: unknown) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+    method: "POST",
+    headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`auth ${path} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+/** A fresh anonymous (diner) session, as browser cookies. */
+export async function anonymousSessionCookies() {
+  const session = await authPost("signup", {});
+  if (session.user?.is_anonymous !== true) throw new Error("expected an anonymous user");
+  return sessionCookies(session);
+}
+
+/** A password session for an already-confirmed staff user, as browser cookies. */
+export async function staffSessionCookies(email: string, password: string) {
+  const session = await authPost("token?grant_type=password", { email, password });
+  if (session.user?.is_anonymous !== false) throw new Error("expected a permanent user");
+  return sessionCookies(session);
+}
+
+/** Creates a staff user through the Auth API and confirms it via the app's /auth/confirm link. */
+export async function createConfirmedStaff(
+  confirm: (link: string) => Promise<void>,
+): Promise<{ email: string; password: string }> {
+  const email = uniqueEmail("staff");
+  const password = "correct-horse-battery";
+  await authPost("signup", { email, password });
+  await confirm(await confirmationLink(email));
+  return { email, password };
 }

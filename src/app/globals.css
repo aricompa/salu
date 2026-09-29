@@ -68,6 +68,9 @@
   --color-danger: var(--salu-danger);
   --color-focus: var(--salu-focus);
 
+  /* 4px spacing grid (PRD 5.6): p-1 = 4px, p-4 = 16px. */
+  --spacing: 0.25rem;
+
   --radius-card: 12px;
   --radius-chip: 999px;
 

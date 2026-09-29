@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { anonymousSessionCookies, confirmationLink, uniqueEmail } from "./helpers";
+import {
+  anonymousSessionCookies,
+  confirmationLink,
+  createConfirmedStaff,
+  staffSessionCookies,
+  uniqueEmail,
+} from "./helpers";
 
 test("owner signs up, confirms email, creates a restaurant and sees the dashboard", async ({
   page,
@@ -35,14 +41,45 @@ test("owner signs up, confirms email, creates a restaurant and sees the dashboar
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/restaurant/dashboard");
   await expect(page).toHaveURL(/\/login$/);
+
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("wrong-password-123");
+  await page.getByRole("button", { name: "Sign in" }).last().click();
+  await expect(page.getByText("Email or password is incorrect.")).toBeVisible();
+
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).last().click();
+  await expect(page).toHaveURL(/\/restaurant\/dashboard$/);
 });
 
-test("an anonymous diner session cannot open the staff portal", async ({ page, context }) => {
-  const cookies = await anonymousSessionCookies();
-  await context.addCookies(cookies.map((c) => ({ ...c, domain: "localhost", path: "/" })));
+test("an anonymous diner session cannot open the staff portal", async ({ browser, page }) => {
+  // Positive control: cookies built the same way for a staff user DO get in, so a
+  // redirect below means the anonymous session was recognized and refused,
+  // not that the cookie was unreadable.
+  const staff = await createConfirmedStaff(async (link) => {
+    await page.goto(link);
+  });
+  const staffContext = await browser.newContext();
+  await staffContext.addCookies(
+    (await staffSessionCookies(staff.email, staff.password)).map((c) => ({
+      ...c,
+      domain: "localhost",
+      path: "/",
+    })),
+  );
+  const staffPage = await staffContext.newPage();
+  await staffPage.goto("/restaurant/dashboard");
+  await expect(staffPage).toHaveURL(/\/restaurant\/onboarding$/);
+  await staffContext.close();
 
-  await page.goto("/restaurant/dashboard");
-  await expect(page).toHaveURL(/\/login$/);
-  await page.goto("/restaurant/onboarding");
-  await expect(page).toHaveURL(/\/login$/);
+  const dinerContext = await browser.newContext();
+  await dinerContext.addCookies(
+    (await anonymousSessionCookies()).map((c) => ({ ...c, domain: "localhost", path: "/" })),
+  );
+  const dinerPage = await dinerContext.newPage();
+  await dinerPage.goto("/restaurant/dashboard");
+  await expect(dinerPage).toHaveURL(/\/login$/);
+  await dinerPage.goto("/restaurant/onboarding");
+  await expect(dinerPage).toHaveURL(/\/login$/);
+  await dinerContext.close();
 });

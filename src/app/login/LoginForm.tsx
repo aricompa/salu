@@ -2,28 +2,32 @@
 
 import { useActionState, useState } from "react";
 import { Button, Card, Input } from "@/components/ui";
-import { signInAction, signUpAction, type LoginState } from "./actions";
+import { signInAction, signUpAction, type SignInResult, type SignUpResult } from "./actions";
 
 type Mode = "sign-in" | "sign-up";
 
 export function LoginForm({ notice }: { notice?: string }) {
   const [mode, setMode] = useState<Mode>("sign-in");
-  const [signInState, signIn, signingIn] = useActionState(signInAction, {} as LoginState);
-  const [signUpState, signUp, signingUp] = useActionState(signUpAction, {} as LoginState);
+  const [signInState, signIn, signingIn] = useActionState(signInAction, null as SignInResult);
+  const [signUpState, signUp, signingUp] = useActionState(signUpAction, null as SignUpResult);
 
-  if (mode === "sign-up" && signUpState.sentTo) {
+  if (mode === "sign-up" && signUpState?.ok) {
     return (
       <Card className="flex flex-col gap-3" role="status">
         <h2 className="text-xl font-semibold">Check your email</h2>
         <p className="text-muted">
-          We sent a confirmation link to <strong className="text-text">{signUpState.sentTo}</strong>
-          . Open it on this device to set up your restaurant.
+          We sent a confirmation link to{" "}
+          <strong className="text-text">{signUpState.data.sentTo}</strong>. Open it on this device
+          to set up your restaurant.
         </p>
       </Card>
     );
   }
 
   const state = mode === "sign-in" ? signInState : signUpState;
+  const failure = state && !state.ok ? state : null;
+  // Field-level problems show next to the field; only other failures get a form-level message.
+  const formError = failure && !failure.fieldErrors ? failure.error.message : null;
   const pending = mode === "sign-in" ? signingIn : signingUp;
 
   return (
@@ -60,8 +64,8 @@ export function LoginForm({ notice }: { notice?: string }) {
           type="email"
           autoComplete="email"
           required
-          defaultValue={state.email}
-          error={state.fieldErrors?.email}
+          defaultValue={failure?.values?.email}
+          error={failure?.fieldErrors?.email}
         />
         <Input
           label="Password"
@@ -71,11 +75,11 @@ export function LoginForm({ notice }: { notice?: string }) {
           required
           minLength={10}
           hint={mode === "sign-up" ? "At least 10 characters." : undefined}
-          error={state.fieldErrors?.password}
+          error={failure?.fieldErrors?.password}
         />
-        {state.error && (
+        {formError && (
           <p role="alert" className="text-danger">
-            {state.error}
+            {formError}
           </p>
         )}
         <Button type="submit" loading={pending}>

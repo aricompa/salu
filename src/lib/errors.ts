@@ -1,6 +1,20 @@
 /** Shape every Server Action returns. */
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: AppError };
 
+/**
+ * Server Action result for forms: the same shape, plus per-field errors and the
+ * submitted values on failure so the form can re-render them. `null` is the idle state.
+ */
+export type FormResult<T, F extends string> =
+  | null
+  | { ok: true; data: T }
+  | {
+      ok: false;
+      error: AppError;
+      fieldErrors?: Partial<Record<F, string>>;
+      values?: Partial<Record<F, string>>;
+    };
+
 export type AppErrorCode =
   | "invalid_table"
   | "item_unavailable"
@@ -13,6 +27,10 @@ export type AppErrorCode =
   | "slug_taken"
   | "not_allowed"
   | "invalid_input"
+  | "invalid_credentials"
+  | "email_not_confirmed"
+  | "weak_password"
+  | "too_many_attempts"
   | "unknown";
 
 export type AppError = { code: AppErrorCode; message: string };
@@ -30,6 +48,10 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   slug_taken: "That link is taken. Try another.",
   not_allowed: "You don't have access to do that.",
   invalid_input: "Check the highlighted fields and try again.",
+  invalid_credentials: "Email or password is incorrect.",
+  email_not_confirmed: "Confirm your email first. Check your inbox for the link.",
+  weak_password: "Choose a stronger password.",
+  too_many_attempts: "Too many attempts. Wait a minute, then try again.",
   unknown: "Something went wrong. Try again in a moment.",
 };
 

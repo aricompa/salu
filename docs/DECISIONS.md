@@ -19,3 +19,7 @@ Append-only. Newest at the bottom. Mirror product-level decisions into the PRD's
 - 2026-09-28: Staff email confirmation uses the token_hash template in `supabase/templates/confirmation.html`. The hosted project needs the same template in Dashboard > Auth > Email Templates.
 - 2026-09-28: Local mail is Mailpit (the Supabase CLI replaced Inbucket). Same port, 54324; e2e reads its API.
 - 2026-09-28: Staff passwords are at least 10 characters in both zod and Supabase Auth (`minimum_password_length`).
+- 2026-09-28: Test-only dependencies beyond the scaffold table: `vite` (peer of vitest 5 and @vitejs/plugin-react 6), `@testing-library/jest-dom` (DOM matchers) and `@testing-library/user-event` (realistic clicks in render tests). No runtime dependencies were added.
+- 2026-09-28: `next dev` writes a managed "Next.js agent rules" block into CLAUDE.md pointing at the version-matched docs in `node_modules/next/dist/docs`. Kept: it's useful and is re-added on every `next dev` anyway.
+- 2026-09-28: Form Server Actions return `FormResult` (`src/lib/errors.ts`): the `{ ok, data } | { ok: false, error }` shape plus `fieldErrors` and echoed `values` on failure, and `null` as the idle state for `useActionState`.
+- 2026-09-28: The CI Supabase CLI is pinned to the `supabase` devDependency version so the generated-types drift check is stable.

@@ -3,12 +3,14 @@
 import { useActionState, useState } from "react";
 import { Button, Input } from "@/components/ui";
 import { slugify } from "@/lib/validation/restaurant";
-import { createRestaurantAction, type OnboardingState } from "./actions";
+import { createRestaurantAction, type OnboardingResult } from "./actions";
 
 export function OnboardingForm({ siteUrl }: { siteUrl: string }) {
-  const [state, action, pending] = useActionState(createRestaurantAction, {} as OnboardingState);
-  const [name, setName] = useState(state.values?.name ?? "");
-  const [slug, setSlug] = useState(state.values?.slug ?? "");
+  const [state, action, pending] = useActionState(createRestaurantAction, null as OnboardingResult);
+  const failure = state && !state.ok ? state : null;
+  const formError = failure && !failure.fieldErrors ? failure.error.message : null;
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const host = siteUrl.replace(/^https?:\/\//, "");
 
@@ -25,7 +27,7 @@ export function OnboardingForm({ siteUrl }: { siteUrl: string }) {
           setName(e.target.value);
           if (!slugEdited) setSlug(slugify(e.target.value));
         }}
-        error={state.fieldErrors?.name}
+        error={failure?.fieldErrors?.name}
       />
       <Input
         label="Link"
@@ -40,11 +42,11 @@ export function OnboardingForm({ siteUrl }: { siteUrl: string }) {
           setSlug(e.target.value.toLowerCase());
         }}
         hint={`${host}/${slug || "casa-grande"} · lowercase letters, numbers and dashes`}
-        error={state.fieldErrors?.slug}
+        error={failure?.fieldErrors?.slug}
       />
-      {state.error && (
+      {formError && (
         <p role="alert" className="text-danger">
-          {state.error}
+          {formError}
         </p>
       )}
       <Button type="submit" loading={pending}>
