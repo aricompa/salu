@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated or tool output:
+    "src/lib/db/types.ts",
+    "playwright-report/**",
+    "test-results/**",
+    "supabase/.temp/**",
   ]),
 ]);
 
