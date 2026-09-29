@@ -81,6 +81,11 @@ One PR to `main` containing:
 - 2026-09-28: Phase 1 diners see only their own orders. Shared-table visibility is decided in Phase 4.
 - 2026-09-28: Next.js 16 `proxy.ts` replaces `middleware.ts`. Tailwind v4 CSS-first config.
 - 2026-09-28: Brand color TBD (blue from the design board vs green from the February portal). Tokenized until decided.
+- 2026-09-28: Stack reviewed against Nautilly (Expo) and Bonerot (Unity + Firebase). Staying on Next.js + Supabase + Vercel. Diners need no-download web, and the data is relational with DB-enforced security.
+- 2026-09-28: All Supabase access goes through `src/lib/` as the portability seam (enforced by the pre-commit hook).
+- 2026-09-28: Cloudflare Turnstile moves from Phase 2 to Brief 03. Supabase CAPTCHA is project-wide, so staff forms likely need it too (verified in Brief 03).
+- 2026-09-28: Claude Code commits per task and opens one PR per brief. Ari reviews and merges.
+- 2026-09-28: Local container runtime is colima (Docker-compatible, free for commercial use) instead of Docker Desktop.
 
 ## Kickoff prompt (paste into Claude Code)
 
