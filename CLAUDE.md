@@ -14,7 +14,7 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-28 — Brand color TBD.** Blue from the design board vs green from the February portal. Tokenized as `--color-brand` until decided. Open decision 1.
 - **2026-09-28 — Stack reviewed against Nautilly (Expo) and Bonerot (Unity + Firebase). Staying on Next.js + Supabase + Vercel.** Diners need no-download web, and the data is relational with DB-enforced security.
 - **2026-09-28 — All Supabase access goes through `src/lib/` as the portability seam.** Enforced by the pre-commit hook. Consequence: rule A8.
-- **2026-09-28 — Cloudflare Turnstile moves from Phase 2 to Brief 03.** Diners on one Wi-Fi share an IP, so the per-IP anonymous limit is not a real abuse control. Supabase CAPTCHA is project-wide, so staff forms likely need it too (open decision 7, verified in Brief 03).
+- **2026-09-28 — Cloudflare Turnstile moves from Phase 2 to Brief 03.** Diners on one Wi-Fi share an IP, so the per-IP anonymous limit is not a real abuse control. Supabase CAPTCHA is project-wide, so staff forms likely need it too (ruled 2026-09-29, see below).
 - **2026-09-28 — Claude Code commits per task and opens one PR per brief. Ari reviews and merges.** Consequence: Roles and rule G6.
 - **2026-09-28 — Local container runtime is colima** (Docker-compatible, free for commercial use) instead of Docker Desktop.
 - **2026-09-28 — Dependencies at latest compatible versions; two held back.** TypeScript 6.0 (typescript-eslint, used by eslint-config-next, supports TS < 6.1) and ESLint 9 (eslint-config-next's react, import and jsx-a11y plugins crash on ESLint 10). Revisit when eslint-config-next supports them (backlog).
@@ -28,6 +28,10 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-28 — Form Server Actions return `FormResult`** (`src/lib/errors.ts`): the `{ ok, data } | { ok: false, error }` shape plus `fieldErrors` and echoed `values` on failure, and `null` as the idle state for `useActionState`.
 - **2026-09-28 — The CI Supabase CLI is pinned to the `supabase` devDependency version** so the generated-types drift check is stable.
 - **2026-09-29 — This file reconciled to the user-level documentation standard.** Why: the standard requires one format for every app repo, and this file had none of its sections (decision log, open decisions, handoff, coverage). Consequence: the decision log moved here from `docs/DECISIONS.md`, which is now a pointer; every existing rule kept its text and gained a citable number; PR "Needs Ari" items became numbered open decisions. Rejected: keeping two logs (a second source of truth).
+- **2026-09-29 — `NEXT_PUBLIC_SITE_URL` is browser-safe and listed in invariant 6.** Resolves open decision 2. Why: QR codes and auth redirects need the public base URL, and it is not a secret. Consequence: invariant 6 lists three vars; no code change. Rejected: deriving it from request headers (fragile behind proxies).
+- **2026-09-29 — Restaurant timezone is set on the Brief 02 Settings page, not at onboarding.** Resolves open decision 3. Why: owners can already update `restaurants.timezone`; onboarding stays name + slug. Consequence: default stays `America/New_York` until Settings ships. Rejected: a picker at onboarding (scope creep on Brief 01, Settings covers it).
+- **2026-09-29 — Add the `server-only` package in Brief 02.** Resolves open decision 4. Why: server modules fail the build if a client component imports them, at zero runtime cost. Consequence: approved dependency under rule S2; Brief 02 adds it and marks `src/lib/supabase/server.ts`, `src/lib/auth.ts` and `src/lib/env.ts`. Rejected: relying on review alone.
+- **2026-09-29 — Turnstile on staff forms: verify locally in Brief 03, then add the widget wherever Supabase requires a token.** Resolves open decision 7. Why: Supabase CAPTCHA is one project-wide switch, so the test is cheap and decisive. Consequence: Brief 03 turns CAPTCHA on locally, signs in as staff with no token, and adds the widget where that fails. Rejected: shipping the widget on `/login` in Brief 02 before the diner flow exists.
 
 ## 2. What this app is
 
@@ -64,7 +68,7 @@ Ari treats security as a first-rate requirement, even in development. Violating 
 4. **Orders are only created through the `place_order` RPC.** The client sends item ids, quantities and notes. **Never send or trust a price from the client.** The database snapshots names and prices.
 5. **Staff order updates change `status` only**, through the DB state machine (`submitted → accepted → preparing → ready → served`, or `cancelled`). Column grants enforce this. Don't widen them. **Orders, sessions and tables with history are never hard-deleted** (FKs are `on delete restrict`). Cancel orders and deactivate tables instead. Realtime DELETE events aren't RLS-filtered the way inserts and updates are, which is one more reason to avoid deletes.
    Floor staff (`role = staff`) can 86 items only through `set_item_availability()`. Price and name edits are owner/manager-only.
-6. **Secrets:** only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` may reach the browser. The secret key (`sb_secret_...`) is server-only, used only where RLS can't apply, and is **not needed in Phase 1**. Never prefix a secret with `NEXT_PUBLIC_`. Never commit `.env*` files except `.env.example`. (`NEXT_PUBLIC_SITE_URL` is in use and not secret; whether to list it here is open decision 2.)
+6. **Secrets:** only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL` may reach the browser. The secret key (`sb_secret_...`) is server-only, used only where RLS can't apply, and is **not needed in Phase 1**. Never prefix a secret with `NEXT_PUBLIC_`. Never commit `.env*` files except `.env.example`.
 7. **Verify identity on the server with `supabase.auth.getClaims()`** in Server Components, Server Actions and Route Handlers. Never trust `getSession()` user data for authorization. RLS is the real boundary. UI checks are convenience only.
 8. **`SECURITY DEFINER` functions** pin `set search_path = ''`, fully qualify every object, check `auth.uid()` and membership themselves, `revoke all ... from public, anon`, and grant execute only to `authenticated`. Put helpers in schema `private` (not exposed via the Data API).
 9. **Validate every input twice:** zod in the Server Action, then constraints and checks in the database.
@@ -150,12 +154,12 @@ npm run check          # lint + typecheck + test + db:test (run before every com
 Numbered, never reused or deleted. STOP and ask; do not guess. When ruled: strike the title, write `RESOLVED YYYY-MM-DD (option X)` and the outcome in place, in the same commit that ships the ruling.
 
 1. **Brand color.** Blue `#3848D0` (design board) vs green `#2ECC8E` (February portal). Tokenized as `--color-brand` meanwhile. No recommendation recorded.
-2. **`NEXT_PUBLIC_SITE_URL` and invariant 6.** The scaffold plan and `.env.example` expose it (QR codes, auth redirects; not secret) but invariant 6 lists only two browser vars. Recommendation: add it to invariant 6.
-3. **Restaurant timezone at onboarding.** PRD P2 asks for a timezone field; Brief 01 shipped name + slug only, defaulting to `America/New_York`. Recommendation: edit it in Brief 02 Settings (owners can already update `restaurants.timezone`, no schema change).
-4. **`server-only` package.** Would make server modules fail the build if imported client-side. Not added (rule S2). Recommendation: add in Brief 02.
+2. ~~**`NEXT_PUBLIC_SITE_URL` and invariant 6.**~~ RESOLVED 2026-09-29 (add to invariant 6). Listed as browser-safe; no code change.
+3. ~~**Restaurant timezone at onboarding.**~~ RESOLVED 2026-09-29 (Brief 02 Settings). Onboarding stays name + slug; default `America/New_York` until Settings ships.
+4. ~~**`server-only` package.**~~ RESOLVED 2026-09-29 (add in Brief 02). Approved dependency.
 5. **Does the no-deletes rule (invariant 5) cover the secret key?** `service_role` has delete grants, and `session_participants` / `order_items` cascade from their parents, so the secret key could hard-delete history. If yes: a new migration in a later brief. Not blocking in Phase 1 (the secret key is unused).
 6. **Which brief gets password reset (PRD P1) and the PWA manifest and icons (scaffold tree)?** Both are spec gaps with no home. No recommendation recorded.
-7. **Turnstile on staff forms.** Supabase CAPTCHA is project-wide; verify early in Brief 03 whether staff sign-in and sign-up need the widget. Default expectation: yes.
+7. ~~**Turnstile on staff forms.**~~ RESOLVED 2026-09-29 (verify locally in Brief 03, then add where required).
 
 ## 7. Definition of done
 
@@ -199,18 +203,18 @@ Current state only. History is in section 1.
    then `git push`. Otherwise leave it uncommitted.
 4. Check PR #2: `gh pr view 2 --json state,mergedAt`. If not merged, stop; Brief 02 does not start (section 2).
 5. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` here, write `docs/phase-1/BRIEF-02-portal.md` in full from the outline in `docs/phase-1/README.md`, point "Active brief" at it, then `git checkout -b phase-1/brief-02-portal`.
-6. Open decisions 2, 3, 4 and 7 shape Brief 02 and 03. Get rulings before building against them.
+6. Open decisions 1, 5 and 6 remain. Brief 02 needs none of them; Brief 03 may need 6 (password reset placement).
 
 ## 9. Gated / deferred items
 
 Each with the test that flips if it is ever gated in.
 
 - **Sold-out copy naming the item** (spec audit, left for Brief 03): needs the item name from `place_order`. Flips: the `errors.ts` drift test gains an `item_unavailable` case with a name.
-- **`server-only` package** (open decision 4): not installed. Flips: a Vitest or build check that a server module imported from a client component fails.
+- **`server-only` package** (ruled 2026-09-29, lands in Brief 02): not installed. Flips: a Vitest or build check that a server module imported from a client component fails.
 - **Secret-key hard deletes** (open decision 5): not fixed. Flips: a pgTAP negative test that `service_role` cannot delete from `orders`, `order_items`, `table_sessions`, `session_participants`.
 - **Password reset, PWA manifest and icons** (open decision 6): not built. Flips: an e2e for reset; a Playwright check that `/manifest.webmanifest` serves.
 - **Turnstile** (Brief 03): not built. Flips: a local sign-in with CAPTCHA on and no token must fail.
-- **Restaurant timezone field** (open decision 3): not built; default `America/New_York`. Flips: a Settings e2e that changes it and sees staff times re-render.
+- **Restaurant timezone field** (ruled 2026-09-29, lands in Brief 02 Settings): not built; default `America/New_York`. Flips: a Settings e2e that changes it and sees staff times re-render.
 
 ## 10. Coverage state
 
