@@ -252,6 +252,12 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Staff email confirmation uses the token_hash flow handled by /auth/confirm.
+# The hosted project needs the same template (Dashboard > Auth > Email Templates).
+[auth.email.template.confirmation]
+subject = "Confirm your Salu account"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
+import { isStaffClaims } from "@/lib/staff-claims";
 
 /**
  * Refreshes the Supabase session cookie on every matched request and keeps
@@ -35,8 +36,7 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
 
-  const isStaff = !!claims && claims.is_anonymous !== true;
-  if (request.nextUrl.pathname.startsWith("/restaurant") && !isStaff) {
+  if (request.nextUrl.pathname.startsWith("/restaurant") && !isStaffClaims(claims)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

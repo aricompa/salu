@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
+import { isStaffClaims } from "@/lib/staff-claims";
 
 export type MemberRole = Database["public"]["Enums"]["member_role"];
 
@@ -21,9 +22,7 @@ export async function requireStaff(): Promise<StaffUser> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  if (error || !claims?.sub || claims.is_anonymous !== false) {
-    redirect("/login");
-  }
+  if (error || !isStaffClaims(claims)) redirect("/login");
   return { userId: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
 }
 
