@@ -1,5 +1,7 @@
 # PM review: Brief 03 (diner flow)
 
+> **Status: PM-ACCEPTED 2026-09-30 (Ari: "accepted"), MERGED @ e491a8f.** The acceptance run on a real phone against production passed: scan, device check, menu, place order, and a live status change. The rotated-code check was not run. Before the run, the hosted project needed anonymous sign-ins turned on (see `CLAUDE.md` section 1, 2026-09-30).
+
 **Tracked:** yes, committed on the Brief 03 branch with its PR. When Ari rules, add a status banner under this title; don't edit the body.
 
 ## 1. Header
