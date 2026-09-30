@@ -53,13 +53,15 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Rule A8 covers app code under `src/`.** Test code under `e2e/` may use `@supabase/supabase-js` directly to act as another user (the realtime negative test does); the pre-commit hook already scans `src/` only.
 - **2026-09-29 — Never run `supabase config push` from this repo without reviewing `[auth.captcha]`.** `config.toml` has CAPTCHA on with Cloudflare's always-pass test secret for local and CI; pushing it would switch hosted CAPTCHA on early with a test secret, breaking Ari's first Turnstile condition. Migrations go up with `supabase db push`, which doesn't touch auth config.
 - **2026-09-29 — A new public env var reaches Production only with the merge that allow-lists it.** Incident: on Claude Code's instruction, Ari added `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to Vercel Production before PR #4 merged. Production still ran `main` (Brief 02), whose boot check refuses unknown `NEXT_PUBLIC_` names, so every route returned 500 ("Refusing to start: unexpected NEXT_PUBLIC_ variables NEXT_PUBLIC_TURNSTILE_SITE_KEY", reproduced locally on `main`). Consequence: a new public variable goes to Preview first; it goes to Production in the same step as merging the PR that adds it to `src/lib/env.ts`. A merge whose build lacks a required variable fails harmlessly (Vercel keeps the last good deployment), so "merge, then add the variable and redeploy" is also safe. Rejected: loosening the boot check.
+- **2026-09-30 — Brief 03 merged to restore production; its acceptance run passed on a real phone.** Ari chose "Merge PR #4 now" to end the outage above: PR #4 `MERGED @ e491a8f`, production deploy green, `/login` 200. Ari then ran the acceptance steps on https://salu-pi.vercel.app from a phone: scan, device check, menu, place order, status page, and a manual `orders.status` change in the Supabase Table Editor appeared on the phone live. The rotated-code check was not reported. Consequence: coverage below records the first on-device run.
+- **2026-09-30 — The hosted project had anonymous sign-ins off; Ari turned them on.** Incident: the first phone scan stopped at "Let's try that again". Claude Code read the hosted project's public Auth settings (read-only GET `/auth/v1/settings` with the publishable key): `anonymous_users: false`. Consequence: Ari enabled "Allow anonymous sign-ins" and raised the anonymous rate limit; hosted setup now also includes `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (test key) in Vercel Preview and Production, and the Brief 03 migration applied with `supabase db push`. Hosted CAPTCHA stays off until a real Cloudflare key replaces the test key in Production. Brief 04 should check hosted Auth settings the same way before any on-device test.
 
 ## 2. What this app is
 
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-03-diner.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-04-order-board.md` (not written yet; outline in `docs/phase-1/README.md`). Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
@@ -215,14 +217,16 @@ Current state only. History is in section 1.
 
 **Stream: Brief 02** — `MERGED @ 19159cb` (PR #3, 2026-09-30 UTC), `PM-ACCEPTED` 2026-09-29 ("PR good to go"). The phone scan of a printed card was not reported. Branch `phase-1/brief-02-portal` can be deleted.
 
-**Stream: Brief 03** — `phase-1/brief-03-diner`, cut from `main @ 19159cb`, PR #4 (https://github.com/aricompa/salu/pull/4) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29, fresh `db:reset`): Vitest 161/161 (22 files), pgTAP 78/78, Playwright 13/13 on the production build, `supabase db lint` clean, types no drift, gitleaks history clean, first-load JS 141 to 147 KB · CI: see PR #4 checks (pickup step 1 verifies) · gate **DESK-GREEN**; PM acceptance pending · review file `PM_REVIEW_brief-03.md` · next: Ari sets the Vercel site key, reviews PR #4, and rules on builder calls (n) to (u) and open decision 13.
+**Stream: Brief 03** — `MERGED @ e491a8f` (PR #4, 2026-09-30 UTC); CI on `main` green (run 36662871657); production deploy green. Acceptance run on a real phone passed for scan, order and live status (2026-09-30); the rotated-code check was not reported. Gate: merged; `PM-ACCEPTED` not yet ruled by Ari. Branch `phase-1/brief-03-diner` can be deleted.
+
+**Stream: Brief 04** — `phase-1/brief-04-order-board`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` · only this records commit so far · gate **OPEN**: brief not written; waiting for Ari to rule on Brief 03 acceptance and say go.
 
 **PICK UP HERE** (run top to bottom):
-1. `git fetch && gh pr view 4 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log. A preview that crashed at boot most likely lacks `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in Vercel.
-2. If PR #4 is open: stop. Brief 04 does not start (section 2). Answer review comments on the branch only.
-3. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` for Brief 03 here, add a status banner to `PM_REVIEW_brief-03.md`, and point "Active brief" at Brief 04.
-4. Write `docs/phase-1/BRIEF-04-order-board.md` from the README outline plus: open decisions 11 and 12, the diner name sheet (PRD D2), password reset and the PWA manifest (decision 6), a Toast primitive, and a real-phone measurement of scan to menu (decision 13).
-5. `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → green before any Brief 04 code. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (see `.env.example`).
+1. `git branch --show-current` → `phase-1/brief-04-order-board`. `git log --oneline main..HEAD` → the records commit, then any Brief 04 commits. `git status --short` → empty.
+2. `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → green. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (see `.env.example`).
+3. If Ari ruled Brief 03 accepted: add a status banner to `PM_REVIEW_brief-03.md` and mark Brief 03 `PM-ACCEPTED` above.
+4. Write `docs/phase-1/BRIEF-04-order-board.md` from the README outline plus: open decisions 11 and 12, the diner name sheet (PRD D2), password reset and the PWA manifest (decision 6), a Toast primitive, a real-phone scan-to-menu timing (decision 13), and a read-only check of hosted Auth settings before on-device tests.
+5. Show Ari the brief; build only after "go".
 
 ## 9. Gated / deferred items
 
@@ -249,7 +253,7 @@ A clean desk suite never reads as validated.
 | Staff sign-up → confirm → onboarding → dashboard, with Turnstile | Playwright 3/3 (incl. Auth refusing sign-in without a token, falsified), local production build (2026-09-29) | Vercel preview builds; Ari's acceptance run: **unverified** | none |
 | Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
 | Portal as floor staff | render tests + pgTAP only | none | none |
-| Diner: scan, Turnstile, menu, cart, place order, live status | Playwright 7/7, Chromium at desktop size plus 390×844 screenshots, local production build (2026-09-29); realtime negative test (another diner receives nothing), falsified; first-load JS 141 to 147 KB | **unverified** (needs Ari's hosted steps in the Brief 03 PR) | none |
+| Diner: scan, Turnstile, menu, cart, place order, live status | Playwright 7/7, Chromium at desktop size plus 390×844 screenshots, local production build (2026-09-29); realtime negative test (another diner receives nothing), falsified; first-load JS 141 to 147 KB | production (hosted Supabase, test Turnstile key, CAPTCHA off), 2026-09-30 | Ari's phone: scan, order and live status passed (2026-09-30); browser not recorded; rotated-code check not reported |
 | Order board | not built | not built | none |
 | iPhone Safari, real QR | n/a | n/a | none until Brief 04 |
 
