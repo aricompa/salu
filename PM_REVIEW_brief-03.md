@@ -62,6 +62,7 @@ It also adds offline banners and loading states on every diner page, and a scrim
 6. **The menu is read fresh on every request** (open decision 13). PRD 5.9 calls it cacheable; I recommend measuring on a phone first.
 
 **Corrections of earlier claims:**
+- **Production outage.** I told you to add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to Production right away. That was wrong: production still runs Brief 02, whose boot check refuses any `NEXT_PUBLIC_` name it doesn't know, so every page returned 500. It should have gone to Preview only until PR #4 merges. The rule is now in `CLAUDE.md` section 1.
 - **The offline copy.** I told you (in this session's working notes) that I'd fixed the cart's offline copy. That was wrong: the edit failed silently. It now says "You're offline. Reconnect to place your order.", and the fix is verified. A process rule is logged.
 - **Live status.** I told you the order page shows status changes live. It did in the tests, but a change landing in the first moment after connecting could be missed. Now fixed.
 - **The brief's redirect status.** The brief says the scan route answers 303. It answers 307, which is what Next's `redirect()` gives in a Route Handler; a GET stays a GET. Builder call (n).
