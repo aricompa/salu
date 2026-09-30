@@ -95,6 +95,13 @@ describe("itemSchema", () => {
     );
   });
 
+  it("drops duplicate tags", () => {
+    expect(
+      itemSchema.parse(form({ name: "Tea", price: "3", dietaryTags: ["vegan", "vegan"] }))
+        .dietaryTags,
+    ).toEqual(["vegan"]);
+  });
+
   it("rejects a tag outside the vocabulary", () => {
     const result = itemSchema.safeParse(form({ name: "Tea", price: "3", dietaryTags: ["keto"] }));
     expect(result.success).toBe(false);
@@ -117,5 +124,17 @@ describe("itemSchema", () => {
     expect(
       itemSchema.safeParse(form({ name: "Tea", price: "1", description: "x".repeat(501) })).success,
     ).toBe(false);
+  });
+});
+
+describe("seed drift guard", () => {
+  it("every dietary tag in seed.sql is in the vocabulary, so editing a seeded item keeps its tags", async () => {
+    const { readFileSync } = await import("node:fs");
+    const seed = readFileSync("supabase/seed.sql", "utf8");
+    const arrays = [...seed.matchAll(/'\{([^}']*)\}'/g)].map((m) => m[1]);
+    const tags = arrays.flatMap((a) => a.split(",").filter(Boolean));
+    expect(tags.length).toBeGreaterThan(0);
+    const vocabulary: string[] = DIETARY_TAGS.map((t) => t.value);
+    for (const tag of tags) expect(vocabulary).toContain(tag);
   });
 });

@@ -49,7 +49,10 @@ export default async function DashboardPage() {
               <div>
                 <p className="text-xl font-medium">
                   {step.href ? (
-                    <Link href={step.href} className="underline-offset-4 hover:underline">
+                    <Link
+                      href={step.href}
+                      className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                    >
                       {step.label}
                     </Link>
                   ) : (

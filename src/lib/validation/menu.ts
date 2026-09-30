@@ -69,7 +69,9 @@ export const itemSchema = z.object({
     return cents;
   }),
   categoryId: z.union([z.literal("").transform(() => null), uuidField]),
-  dietaryTags: z.array(z.enum(TAG_VALUES, "Pick tags from the list.")),
+  dietaryTags: z
+    .array(z.enum(TAG_VALUES, "Pick tags from the list."))
+    .transform((tags) => [...new Set(tags)]),
   isAvailable: z.boolean(),
 });
 
