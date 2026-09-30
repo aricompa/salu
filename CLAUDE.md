@@ -232,7 +232,7 @@ Session closed 2026-09-30 (Ari: "calling it a night").
 **PICK UP HERE** (run top to bottom):
 1. `git fetch && git branch --show-current` → `phase-1/brief-04-order-board`. `git status --short` → empty. `git log --oneline main..HEAD` → docs commits only (Brief 03 records, PM-ACCEPTED, the Brief 04 draft, rulings on decisions 11 and 12, seat-tables and D10, the Ready ruling, this handoff).
 2. `colima status` (start it if needed), then `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → Vitest 161/161, pgTAP 78/78. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`.
-3. Ask Ari for "go" on `docs/phase-1/BRIEF-04-order-board.md` if he hasn't given it. Build nothing before it.
+3. If Ari hasn't said "go" on `docs/phase-1/BRIEF-04-order-board.md`, ask for it. Build nothing before it.
 4. After "go": build tasks 1 to 10 in order, one commit each, `npm run check && npm run format:check` before each. Task 2's migration and task 9's `place_order` change get pgTAP negatives and falsification; task 3 includes the diner timeline without Ready.
 5. Before the PR: `npm run build && CI=1 npx playwright test`, the long-service and latency probes, screenshots, spec-reconciliation agent, `PM_REVIEW_brief-04.md` with the Phase 1 exit checklist, then `gh pr create` and stop.
 6. Before any phone test on the hosted project: read-only `GET /auth/v1/settings` (anonymous sign-ins on). Any new public env var goes to Vercel Preview first, Production only with its merge.
