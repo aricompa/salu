@@ -32,13 +32,20 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Restaurant timezone is set on the Brief 02 Settings page, not at onboarding.** Resolves open decision 3. Why: owners can already update `restaurants.timezone`; onboarding stays name + slug. Consequence: default stays `America/New_York` until Settings ships. Rejected: a picker at onboarding (scope creep on Brief 01, Settings covers it).
 - **2026-09-29 — Add the `server-only` package in Brief 02.** Resolves open decision 4. Why: server modules fail the build if a client component imports them, at zero runtime cost. Consequence: approved dependency under rule S2; Brief 02 adds it and marks `src/lib/supabase/server.ts`, `src/lib/auth.ts` and `src/lib/env.ts`. Rejected: relying on review alone.
 - **2026-09-29 — Turnstile on staff forms: verify locally in Brief 03, then add the widget wherever Supabase requires a token.** Resolves open decision 7. Why: Supabase CAPTCHA is one project-wide switch, so the test is cheap and decisive. Consequence: Brief 03 turns CAPTCHA on locally, signs in as staff with no token, and adds the widget where that fails. Rejected: shipping the widget on `/login` in Brief 02 before the diner flow exists.
+- **2026-09-29 — Correction to the `server-only` entry above (same date): `src/lib/env.ts` is not marked.** Why: `src/lib/supabase/client.ts` (the browser client) imports it, so marking it would break every client component that uses Supabase. Consequence: Brief 02 marks `src/lib/supabase/server.ts`, `src/lib/auth.ts`, `src/lib/staff-auth.ts`, `src/lib/restaurants.ts` and new server lib modules; `src/lib/supabase/proxy.ts` stays unmarked. Rejected: splitting `env.ts` into server and browser halves (no secret lives in it; all three vars are browser-safe under invariant 6).
+- **2026-09-29 — Brief 02 builder calls, pending PM review.** Written into `docs/phase-1/BRIEF-02-portal.md` without a separate ruling; Ari's `go` accepted the brief as drafted. (a) Tables have no delete control, only deactivate (rule 5). (b) A category can be deleted only when it has no items, because `on delete set null` would orphan them off the diner menu. (c) Items can be deleted with an in-page confirmation, because `menu_items` has no hide flag and order history keeps its snapshot. (d) Dietary tags are a fixed six-value vocabulary. (e) Floor staff see no QR tokens or print sheet, although RLS lets members read tokens (screen exposure, not access). (f) Reordering uses up/down buttons, not drag (keyboard and screen-reader users). Rejected: asking before each; all are reversible UI choices inside the existing grants.
+- **2026-09-29 — Brief 02 build calls beyond the brief, pending PM review.** Found by the pre-PR spec audit; kept deliberately. (g) The item form's category select lists hidden categories as "(hidden)"; the brief said active only, but then an item in a hidden category would lose its category on save. (h) The 86 switch keeps one accessible name ("Available Lobster Roll") and shows state through `aria-checked` plus the row's "Sold out" badge; the brief asked for a label that flips, which breaks the switch pattern and WCAG 2.5.3 label-in-name. (i) Rotating a QR confirms with an inline status line, not a toast: no Toast primitive exists yet (PRD 5.6 lists one; build it with the board in Brief 04). (j) Settings copy: the link reads "set at sign-up, can't be changed yet", not the brief's "Changing your link would break printed codes", which is false (the QR carries the token); the add-on cutoff hint says "a later update" rather than naming Phase 2 to restaurant staff. (k) Hidden categories get a dashed card and a "Hidden" badge; active ones carry no badge. (l) The time zone check accepts anything `Intl.DateTimeFormat` accepts, including aliases such as `UTC`, so a stored alias stays valid. (m) Tasks 2 and 3, and 4 and 5, shipped as one commit each because they share pages. Rejected: reworking to the letter of the brief where the brief was wrong.
+- **2026-09-29 — Writes that RLS may filter are checked by row count.** Why: Postgres RLS makes a disallowed UPDATE or DELETE affect 0 rows without raising, so a Server Action would report success to floor staff. Consequence: `src/lib/mutations.ts` (`oneRowChanged`) treats 0 rows as `not_allowed`; pgTAP "cannot change" tests count affected rows next to a positive-control read. Rejected: `throws_ok` on updates (it never fires).
+- **2026-09-29 — Floor-staff portal views are covered by role-prop render tests and pgTAP, not e2e.** Why: Phase 1 has no invite flow and no secret key, so e2e cannot sign in as `role = staff`. Consequence: gated item in section 9. Rejected: test-only membership seeding (new infrastructure for a Phase 2 flow).
+- **2026-09-29 — `seed.sql` dietary tags use the vocabulary values (`vegetarian`, `gluten-free`), not `V` and `GF`.** Incident: the spec audit found that saving any seeded item in the new form would silently drop its tags. Consequence: seed fixed; a Vitest drift guard reads `seed.sql` and fails on any tag outside the vocabulary (falsified by restoring one `V`). If the hosted project was seeded with the old values, it needs the same change.
+- **2026-09-29 — `toAppError` takes the meaning of a unique violation per form.** Why: a duplicate table label read "That link is taken." Consequence: codes `label_taken`, `category_not_empty`, `not_found`; the onboarding default stays `slug_taken`.
 
 ## 2. What this app is
 
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-01-foundation.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-02-portal.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
@@ -160,6 +167,9 @@ Numbered, never reused or deleted. STOP and ask; do not guess. When ruled: strik
 5. **Does the no-deletes rule (invariant 5) cover the secret key?** `service_role` has delete grants, and `session_participants` / `order_items` cascade from their parents, so the secret key could hard-delete history. If yes: a new migration in a later brief. Not blocking in Phase 1 (the secret key is unused).
 6. **Which brief gets password reset (PRD P1) and the PWA manifest and icons (scaffold tree)?** Both are spec gaps with no home. No recommendation recorded.
 7. ~~**Turnstile on staff forms.**~~ RESOLVED 2026-09-29 (verify locally in Brief 03, then add where required).
+8. **Database checks for `restaurants.timezone` and `menu_items.dietary_tags` (invariant 9 half-met).** zod validates both; the database accepts any text, and Brief 02 is the first write path for both. Proposal (not applied, rule S1): one migration adding `check (dietary_tags <@ array['vegetarian','vegan','gluten-free','dairy-free','contains-nuts','spicy']::text[])` and a trigger that rejects a `timezone` missing from `pg_timezone_names` (a check constraint cannot query). Recommendation: yes, as the first migration of Brief 03, before diners read tags. Shipped mitigation: the kitchen clock no longer crashes the portal on an unknown zone.
+9. **Discontinued menu items: delete (current) or a hide flag?** Brief 02 deletes; order history keeps its snapshot (pgTAP portal test 25). A `menu_items.is_active` column would let owners re-list seasonal items. Recommendation: keep delete for Phase 1; revisit with modifiers in Phase 2.
+10. **Table delete: PRD 5.10 grants owners and managers "CRUD" on tables; Brief 02 ships no delete (builder call (a)).** Rule 5 forbids deleting tables with history; an unused table could be deleted. Recommendation: amend the PRD matrix to "create, edit, deactivate, rotate QR" and keep delete out of the UI.
 
 ## 7. Definition of done
 
@@ -184,37 +194,31 @@ A gate is one brief. "Done" means both halves.
 
 Current state only. History is in section 1.
 
-**Stream: Brief 01** — `phase-1/brief-01-foundation @ 04ec15c` · worktree `/Users/ari/salu` · **UNCOMMITTED:** `CLAUDE.md` (this reconciliation), `docs/DECISIONS.md` (now a pointer); nothing new to add, nothing to leave untracked · desk: lint, typecheck, vitest 57/57 (7 files), pgTAP 43/43 re-run 2026-09-29 and green; Playwright 2/2 and CI run 36514750863 green (2026-09-28, not re-run) · gate **OPEN**: PR #2 open, 0 reviews, mergeable · next: Ari reviews and merges https://github.com/aricompa/salu/pull/2
+**Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29). Branch `phase-1/brief-01-foundation` can be deleted after Brief 02 merges. Gate `PM-ACCEPTED` is implied by Ari's merge; the acceptance run on the Vercel preview was not separately recorded.
+
+**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2`, PR #3 (https://github.com/aricompa/salu/pull/3) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29): lint, typecheck, format, Vitest 134/134 (18 files), pgTAP 68/68, `supabase db lint` clean, types no drift, production build (all `/restaurant/*` dynamic), Playwright 5/5 on the production build · gate **DESK-GREEN**; CI: see PR #3 checks (pickup step 1 verifies); PM acceptance pending; review file `PM_REVIEW_brief-02.md` · next: Ari reviews PR #3 and rules on open decisions 8, 9, 10 and builder calls (a) to (m).
+
+All seven Brief 02 tasks are built. Commits: `519268c` brief docs, `aee93a8` task 1, `4f3695c` tasks 2 and 3, `fb7b2bb` tasks 4 and 5, `750a23e` task 6, `61ff087` task 7 tests and screenshots, `2a908a1` audit fixes, `272ffff` handoff, then the PM review file and the row-count guard test.
 
 **PICK UP HERE** (run top to bottom):
-1. `git branch --show-current` → `phase-1/brief-01-foundation`. `git status --short` → only `CLAUDE.md` and `docs/DECISIONS.md` modified. If the tree differs, stop and reconcile this section first.
-2. `npm run db:start && npm run check` → 57 vitest, 43 pgTAP, all passing. Report failures as failures.
-3. If Ari said `commit`, run with this message:
-   ```
-   docs: reconcile CLAUDE.md to the documentation standard
-
-   Move the decision log from docs/DECISIONS.md into CLAUDE.md, number
-   every rule so it can be cited, add roles, known open decisions (from
-   the PR #2 "Needs Ari" list), per-gate definition of done, handoff
-   status, gated items, coverage state and backlog. No rule text changed.
-
-   Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-   ```
-   then `git push`. Otherwise leave it uncommitted.
-4. Check PR #2: `gh pr view 2 --json state,mergedAt`. If not merged, stop; Brief 02 does not start (section 2).
-5. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` here, write `docs/phase-1/BRIEF-02-portal.md` in full from the outline in `docs/phase-1/README.md`, point "Active brief" at it, then `git checkout -b phase-1/brief-02-portal`.
-6. Open decisions 1, 5 and 6 remain. Brief 02 needs none of them; Brief 03 may need 6 (password reset placement).
+1. `git fetch && gh pr view 3 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log.
+2. If PR #3 is open: stop. Brief 03 does not start (section 2). Answer review comments on the branch only.
+3. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` for Brief 02 here, move `server-only`, time zone and portal rows forward in section 10, and point "Active brief" at Brief 03.
+4. Write `docs/phase-1/BRIEF-03-diner.md` from the README outline plus: open decision 8's migration (if ruled yes) as its first task, open decision 7's Turnstile check, the sold-out copy that names the item (section 9), and PRD P3's "place a test order" link.
+5. `npm run db:start && npm run db:reset && npm run check` → green before any Brief 03 code.
 
 ## 9. Gated / deferred items
 
 Each with the test that flips if it is ever gated in.
 
 - **Sold-out copy naming the item** (spec audit, left for Brief 03): needs the item name from `place_order`. Flips: the `errors.ts` drift test gains an `item_unavailable` case with a name.
-- **`server-only` package** (ruled 2026-09-29, lands in Brief 02): not installed. Flips: a Vitest or build check that a server module imported from a client component fails.
 - **Secret-key hard deletes** (open decision 5): not fixed. Flips: a pgTAP negative test that `service_role` cannot delete from `orders`, `order_items`, `table_sessions`, `session_participants`.
 - **Password reset, PWA manifest and icons** (open decision 6): not built. Flips: an e2e for reset; a Playwright check that `/manifest.webmanifest` serves.
 - **Turnstile** (Brief 03): not built. Flips: a local sign-in with CAPTCHA on and no token must fail.
-- **Restaurant timezone field** (ruled 2026-09-29, lands in Brief 02 Settings): not built; default `America/New_York`. Flips: a Settings e2e that changes it and sees staff times re-render.
+- **DB checks on time zone and dietary tags** (open decision 8): proposed, not built. Flips: pgTAP tests that an owner cannot store `timezone = 'Mars/Olympus'` or a tag outside the vocabulary.
+- **Floor-staff e2e** (2026-09-29 log): not built; render tests and pgTAP only. Flips: when staff invites ship (Phase 2), an e2e signs in as `role = staff` and sees only the 86 switch on the menu, no tokens on tables, and 404 on the print sheet.
+- **Toast primitive** (builder call (i)): not built. Flips: a render test that a toast announces through `role="status"` and respects reduced motion; the rotate confirmation moves to it.
+- **`qrcode` import rule**: rule A8 keeps it under `src/lib/`, but the pre-commit hook only checks `@supabase/*`. Flips: the hook blocks `from "qrcode"` outside `src/lib/`.
 
 ## 10. Coverage state
 
@@ -222,9 +226,11 @@ A clean desk suite never reads as validated.
 
 | Surface | Desk-only | Validated (hosted preview) | On-device |
 |---|---|---|---|
-| Schema, RLS, RPC grants | pgTAP 43/43 (2026-09-29), 2 falsification probes recorded in PR #2 | not run against the hosted project by Claude Code (rule 10) | n/a |
-| env, errors, money, validation, UI primitives | Vitest 57/57 (2026-09-29) | n/a | n/a |
-| Staff sign-up → confirm → onboarding → dashboard | Playwright 2/2, Chromium, local + CI (2026-09-28) | Vercel preview builds; Ari's acceptance run: **unverified** | none |
+| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 pgTAP falsification probes (2 in PR #2, 5 in PR #3); PR #3 also probed `server-only`, the seed drift guard and the row-count guard | not run against the hosted project by Claude Code (rule 10) | n/a |
+| lib, validation, UI primitives, portal components | Vitest 134/134, 18 files (2026-09-29) | n/a | n/a |
+| Staff sign-up → confirm → onboarding → dashboard | Playwright 2/2, Chromium, local production build (2026-09-29) and CI | Vercel preview builds; Ari's acceptance run: **unverified** | none |
+| Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables on Letter and A4, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
+| Portal as floor staff | render tests + pgTAP only | none | none |
 | Diner flow, order board | not built | not built | none |
 | iPhone Safari, real QR | n/a | n/a | none until Brief 04 |
 

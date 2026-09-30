@@ -1,3 +1,4 @@
+import "server-only";
 import { toAppError, type ActionResult } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 

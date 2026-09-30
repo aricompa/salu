@@ -1,9 +1,10 @@
+import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/db/types";
+import type { MemberRole } from "@/lib/roles";
 import { isStaffClaims } from "@/lib/staff-claims";
 
-export type MemberRole = Database["public"]["Enums"]["member_role"];
+export type { MemberRole };
 
 export type StaffUser = { userId: string; email: string | null };
 
@@ -11,6 +12,8 @@ export type Membership = {
   restaurantId: string;
   restaurantName: string;
   restaurantSlug: string;
+  restaurantTimezone: string;
+  restaurantCurrency: string;
   role: MemberRole;
 };
 
@@ -34,7 +37,7 @@ export async function getMembership(
   const supabase = await createClient();
   let query = supabase
     .from("restaurant_members")
-    .select("restaurant_id, role, restaurants (name, slug)")
+    .select("restaurant_id, role, restaurants (name, slug, timezone, currency)")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1);
@@ -47,6 +50,8 @@ export async function getMembership(
     restaurantId: data.restaurant_id,
     restaurantName: data.restaurants.name,
     restaurantSlug: data.restaurants.slug,
+    restaurantTimezone: data.restaurants.timezone,
+    restaurantCurrency: data.restaurants.currency,
     role: data.role,
   };
 }

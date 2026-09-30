@@ -97,3 +97,8 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Print margins for the QR sheet; the paper size follows the printer (Letter or A4). */
+@page {
+  margin: 12mm;
+}

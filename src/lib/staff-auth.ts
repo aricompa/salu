@@ -1,3 +1,4 @@
+import "server-only";
 import { publicEnv } from "@/lib/env";
 import { isStaffClaims } from "@/lib/staff-claims";
 import { createClient } from "@/lib/supabase/server";

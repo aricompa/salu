@@ -17,11 +17,11 @@ insert into public.menu_items
   (restaurant_id, category_id, name, description, price_cents, is_available, dietary_tags, sort_order)
 values
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1',
-   'Crispy Brussels Sprouts', 'Honey, chili, lime.', 1100, true, '{V,GF}', 1),
+   'Crispy Brussels Sprouts', 'Honey, chili, lime.', 1100, true, '{vegetarian,gluten-free}', 1),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1',
-   'Burrata', 'Heirloom tomato, basil oil, grilled sourdough.', 1600, true, '{V}', 2),
+   'Burrata', 'Heirloom tomato, basil oil, grilled sourdough.', 1600, true, '{vegetarian}', 2),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1',
-   'Tuna Crudo', 'Citrus, jalapeño, crispy shallot.', 1800, true, '{GF}', 3),
+   'Tuna Crudo', 'Citrus, jalapeño, crispy shallot.', 1800, true, '{gluten-free}', 3),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c1',
    'Soup of the Day', 'Ask your server what''s on today.', 900, true, '{}', 4),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2',
@@ -29,17 +29,17 @@ values
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2',
    'Lobster Roll', 'Warm butter, toasted brioche, chips.', 3400, false, '{}', 2),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2',
-   'Roast Half Chicken', 'Salsa verde, charred lemon, potatoes.', 2600, true, '{GF}', 3),
+   'Roast Half Chicken', 'Salsa verde, charred lemon, potatoes.', 2600, true, '{gluten-free}', 3),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2',
-   'Mushroom Risotto', 'Parmesan, thyme, truffle butter.', 2400, true, '{V,GF}', 4),
+   'Mushroom Risotto', 'Parmesan, thyme, truffle butter.', 2400, true, '{vegetarian,gluten-free}', 4),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c3',
-   'House Lemonade', 'Fresh-squeezed.', 500, true, '{V,GF}', 1),
+   'House Lemonade', 'Fresh-squeezed.', 500, true, '{vegetarian,gluten-free}', 1),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c3',
-   'Cold Brew', 'Single origin, 16 oz.', 600, true, '{V,GF}', 2),
+   'Cold Brew', 'Single origin, 16 oz.', 600, true, '{vegetarian,gluten-free}', 2),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c3',
-   'Sparkling Water', '750 ml bottle.', 700, true, '{V,GF}', 3),
+   'Sparkling Water', '750 ml bottle.', 700, true, '{vegetarian,gluten-free}', 3),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c3',
-   'Local IPA', 'Rotating draft, 16 oz.', 900, true, '{V}', 4);
+   'Local IPA', 'Rotating draft, 16 oz.', 900, true, '{vegetarian}', 4);
 
 -- qr_token is set by trigger; never supply it.
 insert into public.dining_tables (restaurant_id, label, capacity) values

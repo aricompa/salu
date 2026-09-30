@@ -1,5 +1,14 @@
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, EmptyState, Input, Skeleton } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Select,
+  Skeleton,
+  Textarea,
+} from "@/components/ui";
 
 export const metadata = { title: "UI primitives · Salu (dev)" };
 
@@ -24,6 +33,11 @@ function Showcase({ theme }: { theme: "light" | "dark" }) {
           defaultValue="casa-grande"
         />
         <Input label="Password" type="password" error="Use at least 10 characters." />
+        <Select label="Category" hint="Items without a category don't show on the diner menu.">
+          <option>Mains</option>
+          <option>Drinks (hidden)</option>
+        </Select>
+        <Textarea label="Description" hint="Optional." defaultValue="Butter-toasted bun." />
       </div>
 
       <div className="flex flex-wrap gap-2">

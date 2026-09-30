@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { requireMembership } from "@/lib/auth";
 import { getSetupCounts } from "@/lib/restaurants";
@@ -13,18 +14,19 @@ export default async function DashboardPage() {
   const steps = [
     {
       label: "Add menu items",
+      href: "/restaurant/menu",
       done: counts.menuItems > 0,
-      detail:
-        counts.menuItems > 0 ? plural(counts.menuItems, "item") : "Menu editor is coming next.",
+      detail: counts.menuItems > 0 ? plural(counts.menuItems, "item") : "Start with a category.",
     },
     {
       label: "Add tables and print QR codes",
+      href: "/restaurant/tables",
       done: counts.tables > 0,
-      detail:
-        counts.tables > 0 ? plural(counts.tables, "table") : "Tables and QR codes are coming next.",
+      detail: counts.tables > 0 ? plural(counts.tables, "table") : "One code per table.",
     },
     {
       label: "Place a test order",
+      href: null,
       done: counts.orders > 0,
       detail:
         counts.orders > 0 ? plural(counts.orders, "order") : "Available once the diner flow ships.",
@@ -45,7 +47,18 @@ export default async function DashboardPage() {
           <li key={step.label}>
             <Card className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-xl font-medium">{step.label}</p>
+                <p className="text-xl font-medium">
+                  {step.href ? (
+                    <Link
+                      href={step.href}
+                      className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                    >
+                      {step.label}
+                    </Link>
+                  ) : (
+                    step.label
+                  )}
+                </p>
                 <p className="text-muted">{step.detail}</p>
               </div>
               <Badge tone={step.done ? "success" : "neutral"}>{step.done ? "Done" : "To do"}</Badge>
