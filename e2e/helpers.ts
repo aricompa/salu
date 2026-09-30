@@ -79,3 +79,105 @@ export async function createConfirmedStaff(
   await confirm(await confirmationLink(email));
   return { email, password };
 }
+
+// ---------------------------------------------------------------- REST setup for diner tests
+
+/** Signs up a staff user and confirms them through the Auth API; returns their access token. */
+export async function confirmedStaffToken(): Promise<string> {
+  const email = uniqueEmail("owner");
+  await authPost("signup", { email, password: "correct-horse-battery" });
+  const link = new URL(await confirmationLink(email));
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+    method: "POST",
+    headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
+    body: JSON.stringify({ type: "email", token_hash: link.searchParams.get("token_hash") }),
+  });
+  if (!res.ok) throw new Error(`verify failed: ${res.status} ${await res.text()}`);
+  return ((await res.json()) as { access_token: string }).access_token;
+}
+
+/** PostgREST call as the given user (RLS applies exactly as in the app). */
+export async function rest<T = unknown>(
+  jwt: string,
+  path: string,
+  init: { method?: string; body?: unknown; prefer?: string } = {},
+): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: init.method ?? "GET",
+    headers: {
+      apikey: PUBLISHABLE_KEY,
+      authorization: `Bearer ${jwt}`,
+      "content-type": "application/json",
+      ...(init.prefer ? { prefer: init.prefer } : {}),
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${init.method ?? "GET"} ${path} failed: ${res.status} ${text}`);
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+export type DinerFixture = {
+  ownerJwt: string;
+  restaurantId: string;
+  restaurantName: string;
+  tables: Record<string, { id: string; token: string }>;
+  items: Record<string, string>;
+};
+
+/** A restaurant with a small menu (one item sold out, one hidden category) and tables. */
+export async function createDinerFixture(): Promise<DinerFixture> {
+  const ownerJwt = await confirmedStaffToken();
+  const restaurantName = "Casa Grande";
+  const restaurantId = await rest<string>(ownerJwt, "rpc/create_restaurant", {
+    method: "POST",
+    body: { p_name: restaurantName, p_slug: `casa-grande-${Date.now()}` },
+  });
+  const categories = await rest<Array<{ id: string; name: string }>>(ownerJwt, "menu_categories", {
+    method: "POST",
+    prefer: "return=representation",
+    body: [
+      { restaurant_id: restaurantId, name: "Starters", sort_order: 0, is_active: true },
+      { restaurant_id: restaurantId, name: "Mains", sort_order: 1, is_active: true },
+      { restaurant_id: restaurantId, name: "Staff meal", sort_order: 2, is_active: false },
+    ],
+  });
+  const cat = Object.fromEntries(categories.map((c) => [c.name, c.id]));
+  const rows = [
+    ["Starters", "Burrata", 1400, true, ["vegetarian"], "Heirloom tomato, basil oil."],
+    ["Starters", "Tuna Crudo", 1650, true, ["gluten-free", "spicy"], "Citrus, chili."],
+    ["Mains", "Grilled Salmon", 2400, true, ["gluten-free"], "Salsa verde."],
+    ["Mains", "Lobster Roll", 3200, false, [], "Butter-toasted bun."],
+    ["Staff meal", "Secret Burger", 900, true, [], "Not on the menu."],
+  ] as const;
+  const items = await rest<Array<{ id: string; name: string }>>(ownerJwt, "menu_items", {
+    method: "POST",
+    prefer: "return=representation",
+    body: rows.map(([category, name, price_cents, is_available, dietary_tags, description], i) => ({
+      restaurant_id: restaurantId,
+      category_id: cat[category],
+      name,
+      price_cents,
+      is_available,
+      dietary_tags,
+      description,
+      sort_order: i,
+    })),
+  });
+  const tables = await rest<Array<{ id: string; label: string; qr_token: string }>>(
+    ownerJwt,
+    "dining_tables?select=id,label,qr_token",
+    {
+      method: "POST",
+      prefer: "return=representation",
+      body: ["A1", "A2", "B1", "C1", "C2"].map((label) => ({ restaurant_id: restaurantId, label })),
+    },
+  );
+  return {
+    ownerJwt,
+    restaurantId,
+    restaurantName,
+    tables: Object.fromEntries(tables.map((t) => [t.label, { id: t.id, token: t.qr_token }])),
+    items: Object.fromEntries(items.map((i) => [i.name, i.id])),
+  };
+}
