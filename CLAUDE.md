@@ -196,22 +196,16 @@ Current state only. History is in section 1.
 
 **Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29). Branch `phase-1/brief-01-foundation` can be deleted after Brief 02 merges. Gate `PM-ACCEPTED` is implied by Ari's merge; the acceptance run on the Vercel preview was not separately recorded.
 
-**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2` · worktree `/Users/ari/salu` · committed through the brief docs commit; task commits follow one per task · desk at cut: lint, typecheck, vitest 57/57 (7 files), pgTAP 43/43 on `main @ c52c3e2`, CI run 36647895536 green (2026-09-29) · gate **OPEN**: Ari said `go` on 2026-09-29; building.
+**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2`, PR #3 (https://github.com/aricompa/salu/pull/3) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29): lint, typecheck, format, Vitest 128/128 (17 files), pgTAP 68/68, `supabase db lint` clean, types no drift, production build (all `/restaurant/*` dynamic), Playwright 5/5 on the production build · gate **DESK-GREEN**; CI on the PR head not yet recorded here; PM acceptance pending · next: Ari reviews PR #3 and rules on open decisions 8, 9, 10 and builder calls (a) to (m).
 
-Brief 02 checklist (one commit each; `npm run check` and `npm run format:check` before each):
-1. `feat(portal): groundwork` — `server-only`, `src/lib/{roles,menu,tables,settings}.ts`, validation schemas, nav, dashboard links
-2. `feat(menu): categories` — list, add, rename, hide, reorder, delete-when-empty
-3. `feat(menu): items and 86 toggle` — item form, cents parsing, inline toggle via `set_item_availability()`, delete with dialog
-4. `feat(tables): tables and QR rotation` — add, edit, deactivate, rotate with dialog, duplicate-label copy
-5. `feat(tables): QR print sheet` — server SVG, 6 per page, owner/manager only
-6. `feat(settings): restaurant, orders, timezone` — three forms, kitchen clock
-7. `test: portal pgTAP, e2e and screenshots` — `phase1_portal.test.sql` with falsification, `e2e/portal-setup.spec.ts`, build, spec-reconciliation, PR
+All seven Brief 02 tasks are built. Commits: `519268c` brief docs, `aee93a8` task 1, `4f3695c` tasks 2 and 3, `fb7b2bb` tasks 4 and 5, `750a23e` task 6, `61ff087` task 7 tests and screenshots, `2a908a1` audit fixes, then this handoff commit.
 
 **PICK UP HERE** (run top to bottom):
-1. `git branch --show-current` → `phase-1/brief-02-portal`. `git log --oneline main..HEAD` → the commits for the checklist items done so far. `git status --short` → empty between tasks.
-2. `npm run db:start && npm run check && npm run format:check` → all passing. Report failures as failures.
-3. Continue at the first unchecked item in the Brief 02 checklist above. Commit per task with trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-4. Before the PR: `npm run build && npm run test:e2e`, spec-reconciliation agent, screenshots, then `gh pr create` and stop.
+1. `git fetch && gh pr view 3 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log.
+2. If PR #3 is open: stop. Brief 03 does not start (section 2). Answer review comments on the branch only.
+3. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` for Brief 02 here, move `server-only`, time zone and portal rows forward in section 10, and point "Active brief" at Brief 03.
+4. Write `docs/phase-1/BRIEF-03-diner.md` from the README outline plus: open decision 8's migration (if ruled yes) as its first task, open decision 7's Turnstile check, the sold-out copy that names the item (section 9), and PRD P3's "place a test order" link.
+5. `npm run db:start && npm run db:reset && npm run check` → green before any Brief 03 code.
 
 ## 9. Gated / deferred items
 
@@ -232,7 +226,7 @@ A clean desk suite never reads as validated.
 
 | Surface | Desk-only | Validated (hosted preview) | On-device |
 |---|---|---|---|
-| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 falsification probes (2 in PR #2, 5 in the Brief 02 PR) | not run against the hosted project by Claude Code (rule 10) | n/a |
+| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 falsification probes (2 in PR #2, 5 in PR #3) | not run against the hosted project by Claude Code (rule 10) | n/a |
 | lib, validation, UI primitives, portal components | Vitest 128/128, 17 files (2026-09-29) | n/a | n/a |
 | Staff sign-up → confirm → onboarding → dashboard | Playwright 2/2, Chromium, local production build (2026-09-29) and CI | Vercel preview builds; Ari's acceptance run: **unverified** | none |
 | Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables on Letter and A4, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
