@@ -4,7 +4,7 @@
 
 ## Objective
 
-Staff run service from a live order board: new orders appear within seconds with an alert, move through accepted, preparing, ready and served, can be cancelled, and tables can be closed. Diners get a name on their orders. Then Phase 1 exits: a "fake dinner" with two or more phones, on the hosted project, on iPhone Safari.
+Staff run service from a live order board: new orders appear within seconds with an alert, move through accepted, preparing, ready and served, can be cancelled, and tables are seated and closed from the board. A table takes orders only after staff seat it, so a photographed code is useless from home (ruled 2026-09-30). Diners get a name on their orders. Then Phase 1 exits: a "fake dinner" with two or more phones, on the hosted project, on iPhone Safari.
 
 The tasks are ordered so the exit path comes first. Password reset and the PWA manifest (ruled into this brief on 2026-09-29) come after it.
 
@@ -47,10 +47,14 @@ The tasks are ordered so the exit path comes first. Password reset and the PWA m
 - Floor staff see and use the whole board (they may move orders along); the Orders nav item turns on.
 - **Done when** a second browser's order appears on the board without a reload, each action moves it one column, a cancel asks first, and a stale action shows the invalid-transition copy.
 
-### 2. Close table
-- An "Open tables" strip on the board: each table with an open session, its unserved-order count, and "Close table" behind a confirmation that names the count ("A4 still has 2 open orders. Close anyway?"). Calls `close_table_session`.
-- The diner sees "This table has been closed" on their next page load or order attempt (Brief 03 behaviour). Showing it live needs a schema change; see "Rulings requested".
-- **Done when** closing a table makes the diner's next order attempt answer `session_closed`, and a rescan opens a new session.
+### 2. Seat and close tables (prank protection, ruled 2026-09-30)
+- **Migration (rule S1, ruled):** `restaurant_settings.require_staff_open boolean not null default true` with an update grant for owners and managers; `public.open_table_session(p_table_id)` (security definer, pinned `search_path`, any member of the table's restaurant, active tables only, get-or-create the open session, returns its id; execute revoked from `public, anon`); `join_table` refuses a table with no open session while the setting is on (`hint = 'table_not_open'`) and otherwise behaves as today.
+- **pgTAP:** a diner can't join an unseated table while the setting is on, and can after staff seat it; floor staff can seat; another restaurant's owner can't; an anonymous user can't call `open_table_session`; with the setting off, joining opens a session as before; a closed table must be seated again. Falsify each guard. The older test files seat their tables in their fixtures, with no assertion changed.
+- **Board:** a "Tables" strip lists every active table: seated ones show their unserved-order count and "Close table" behind a confirmation that names the count ("A4 still has 2 open orders. Close anyway?"); unseated ones show "Seat". Both are Server Actions.
+- **Diner:** the scan route sends `table_not_open` to `/t/[token]/not-seated`: "Your table isn't open yet. Ask your server to seat you, then scan again", with a plain `<a>` back to the scan URL. A closed table is learned on the next page load or order attempt (PRD D10 ruling, 2026-09-30).
+- **Settings:** a toggle "Staff seat tables before diners can order" (owners and managers).
+- e2e fixtures seat tables through the RPC.
+- **Done when** an unseated table's code shows the not-seated copy, seating lets the same phone order, closing makes the next order attempt answer `session_closed`, and a rescan after closing shows not-seated again.
 
 ### 3. Diner names (PRD D2)
 - A one-field bottom sheet over the menu the first time in a session: "What should we call you?" (up to 40 characters) with **Skip** equally prominent. Saves through `participants_self_update` via `src/lib/`.
@@ -85,15 +89,16 @@ The tasks are ordered so the exit path comes first. Password reset and the PWA m
 - Before any phone test: the read-only check of hosted Auth settings (`/auth/v1/settings`: anonymous sign-ins on).
 - Screenshots at 1024×768 (board, drawer, open tables) and 390×844 (name sheet). Spec-reconciliation agent. PR.
 
-## Rulings requested before building (rule S1 and open decisions)
+## Rulings (all given 2026-09-30)
 
-1. **Open decision 11:** should `place_order` refuse items in hidden categories or with no category? It's an RPC change. Risk of yes: a migration to a security-definer function (tested and falsified). Risk of no: a crafted request can still order an item the portal shows as hidden.
-2. **Open decision 12:** move staff sign-in, sign-up and reset calls into the browser? Risk of yes: rule A4 (Server Actions for mutations) and the Server Action half of rule 9 no longer apply to auth; Supabase Auth still validates. Risk of no: every staff member shares Vercel's IP for Supabase's per-IP auth limits, and reset adds another server-side call. It decides how task 7 is built.
-3. **Live table closure for diners (PRD D10):** add `table_sessions` to the realtime publication so an open status page shows "This table has been closed" at once? Risk of yes: a schema change and a second realtime subscription on diner pages. Risk of no: the diner sees it on their next page load or order attempt.
+1. Open decision 11: yes, task 9.
+2. Open decision 12: staff auth moves to the browser, task 7.
+3. PRD D10: no live closure; the diner learns it on the next action.
+4. Prank protection: staff seat tables, on by default, task 2.
 
 ## Out of scope
 
-Table view toggle, late add-on badges, table requests, staff invites and roles UI, ticket-age thresholds as settings (Phase 2) · payments (Phase 3) · groups and split (Phase 4) · open decision 13's caching (measure only) · brand colour (decision 1).
+Table view toggle, late add-on badges, table requests, staff invites and roles UI, ticket-age thresholds as settings (Phase 2) · live table closure for diners (ruled out 2026-09-30) · payments (Phase 3) · groups and split (Phase 4) · open decision 13's caching (measure only) · brand colour (decision 1).
 
 ## Rules that bite in this brief
 
