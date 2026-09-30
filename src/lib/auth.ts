@@ -13,6 +13,7 @@ export type Membership = {
   restaurantName: string;
   restaurantSlug: string;
   restaurantTimezone: string;
+  restaurantCurrency: string;
   role: MemberRole;
 };
 
@@ -36,7 +37,7 @@ export async function getMembership(
   const supabase = await createClient();
   let query = supabase
     .from("restaurant_members")
-    .select("restaurant_id, role, restaurants (name, slug, timezone)")
+    .select("restaurant_id, role, restaurants (name, slug, timezone, currency)")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1);
@@ -50,6 +51,7 @@ export async function getMembership(
     restaurantName: data.restaurants.name,
     restaurantSlug: data.restaurants.slug,
     restaurantTimezone: data.restaurants.timezone,
+    restaurantCurrency: data.restaurants.currency,
     role: data.role,
   };
 }

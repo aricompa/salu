@@ -14,6 +14,14 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
 };
 
+const base =
+  "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-card px-4 py-2 font-medium transition-opacity";
+
+/** Button look for a link (e.g. "Add item" navigates, so it stays an <a>). */
+export function buttonStyles(variant: Variant = "primary", className?: string): string {
+  return cn(base, variants[variant], className);
+}
+
 export function Button({
   variant = "primary",
   loading = false,
@@ -29,7 +37,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-card px-4 py-2 font-medium transition-opacity",
+        base,
         "disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant],
         className,
