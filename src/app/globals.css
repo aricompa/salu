@@ -20,6 +20,7 @@
   --salu-warning: #a16207;
   --salu-danger: #b91c1c;
   --salu-focus: #2563eb;
+  --salu-scrim: rgb(17 24 39 / 0.45);
 }
 
 /* Portal forces dark with data-theme="dark"; diner pages follow the device. */
@@ -37,6 +38,7 @@
     --salu-warning: #facc15;
     --salu-danger: #f87171;
     --salu-focus: #93c5fd;
+    --salu-scrim: rgb(0 0 0 / 0.6);
   }
 }
 
@@ -53,6 +55,7 @@
   --salu-warning: #facc15;
   --salu-danger: #f87171;
   --salu-focus: #93c5fd;
+  --salu-scrim: rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -67,6 +70,7 @@
   --color-warning: var(--salu-warning);
   --color-danger: var(--salu-danger);
   --color-focus: var(--salu-focus);
+  --color-scrim: var(--salu-scrim);
 
   /* 4px spacing grid (PRD 5.6): p-1 = 4px, p-4 = 16px. */
   --spacing: 0.25rem;

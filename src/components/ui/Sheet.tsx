@@ -33,7 +33,7 @@ export function Sheet({
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
-      className="mx-auto mt-auto mb-0 max-h-[85dvh] w-full max-w-2xl rounded-t-card border border-border bg-surface p-5 text-text backdrop:bg-text/40 open:animate-[sheet-in_200ms_ease-out] motion-reduce:open:animate-none"
+      className="mx-auto mt-auto mb-0 max-h-[85dvh] w-full max-w-2xl rounded-t-card border border-border bg-surface p-5 text-text backdrop:bg-scrim open:animate-[sheet-in_200ms_ease-out] motion-reduce:open:animate-none"
     >
       <div className="flex items-start justify-between gap-3">
         <h2 id={titleId} className="text-2xl font-semibold">
