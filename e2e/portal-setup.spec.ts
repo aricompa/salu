@@ -165,3 +165,39 @@ test("owner adds tables, rotates a QR code and prints the sheet", async ({ page 
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "A5" })).toBeVisible();
 });
+
+test("owner changes order timers and the time zone", async ({ page }) => {
+  await onboardOwner(page);
+  await page.getByRole("link", { name: "Settings" }).first().click();
+  await expect(page.getByLabel("Edit window (minutes)")).toHaveValue("5");
+  await expect(page.getByLabel("Add-on cutoff (minutes)")).toHaveValue("20");
+  await expect(page.getByLabel("Time zone")).toHaveValue("America/New_York");
+
+  // Out of range: refused on the field, typed value kept.
+  await page.getByLabel("Edit window (minutes)").fill("31");
+  await page.getByRole("button", { name: "Save order settings" }).click();
+  await expect(page.getByText("Use a whole number of minutes from 0 to 30.")).toBeVisible();
+  await expect(page.getByLabel("Edit window (minutes)")).toHaveValue("31");
+
+  await page.getByLabel("Edit window (minutes)").fill("10");
+  await page.getByRole("button", { name: "Save order settings" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Edit window (minutes)")).toHaveValue("10");
+
+  // Time zone moves the kitchen clock in the header.
+  const tokyo = (offsetMin: number) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Tokyo",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(Date.now() - offsetMin * 60_000));
+  await page.getByLabel("Time zone").selectOption("Asia/Tokyo");
+  await page.getByLabel("Restaurant name").fill("Portal Test Kitchen Tokyo");
+  await page.getByRole("button", { name: "Save restaurant" }).click();
+  await expect(page.getByText("Portal Test Kitchen Tokyo").first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Time zone")).toHaveValue("Asia/Tokyo");
+  const clock = (await page.locator("header time").innerText()).trim();
+  expect([tokyo(0), tokyo(1)]).toContain(clock);
+});

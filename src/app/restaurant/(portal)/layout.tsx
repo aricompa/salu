@@ -1,3 +1,4 @@
+import { KitchenClock } from "@/components/portal/KitchenClock";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { Button } from "@/components/ui";
 import { requireMembership } from "@/lib/auth";
@@ -12,11 +13,14 @@ export default async function PortalLayout({ children }: { children: React.React
           <p className="text-xl font-semibold">{membership.restaurantName}</p>
           <PortalNav />
         </div>
-        <form action="/auth/signout" method="post">
-          <Button type="submit" variant="ghost">
-            Sign out
-          </Button>
-        </form>
+        <div className="flex flex-wrap items-center gap-4">
+          <KitchenClock timeZone={membership.restaurantTimezone} />
+          <form action="/auth/signout" method="post">
+            <Button type="submit" variant="ghost">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </header>
       <main className="mx-auto max-w-5xl p-6 print:max-w-none print:p-0">{children}</main>
     </div>
