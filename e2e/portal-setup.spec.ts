@@ -108,3 +108,60 @@ test("owner builds a menu: categories, items in cents, the 86 toggle", async ({ 
   await page.getByRole("button", { name: "Delete item" }).click();
   await expect(page.getByText(itemName)).toHaveCount(0);
 });
+
+test("owner adds tables, rotates a QR code and prints the sheet", async ({ page }) => {
+  await onboardOwner(page);
+  await page.getByRole("link", { name: "Tables" }).first().click();
+  await expect(page.getByText("No tables yet")).toBeVisible();
+
+  await page.getByLabel("New table").fill("A4");
+  await page.getByLabel("Seats").fill("4");
+  await page.getByRole("button", { name: "Add table" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "A4" })).toBeVisible();
+  await expect(page.getByText("4 seats")).toBeVisible();
+
+  // Labels are unique per restaurant; the message names the table.
+  await page.getByLabel("New table").fill("A4");
+  await page.getByRole("button", { name: "Add table" }).click();
+  await expect(page.getByText("You already have a table called A4.")).toBeVisible();
+
+  await page.getByLabel("New table").fill("B1");
+  await page.getByLabel("Seats").fill("");
+  await page.getByRole("button", { name: "Add table" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "B1" })).toBeVisible();
+  await expect(page.getByText("Seats not set")).toBeVisible();
+
+  // Rotate A4: the diner link changes and the old one is gone.
+  const a4 = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "A4" }) });
+  const before = await a4.locator("code").getAttribute("title");
+  expect(before).toMatch(/\/t\/[0-9a-f]{32}$/);
+  await page.getByRole("button", { name: "Rotate QR A4" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Printed codes for A4 will stop working.");
+  await page.getByRole("dialog").getByRole("button", { name: "Rotate QR" }).click();
+  await expect(page.getByText("New code ready. Print it from the sheet.")).toBeVisible();
+  await expect(a4.locator("code")).not.toHaveAttribute("title", before as string);
+  await expect(page.locator(`code[title="${before}"]`)).toHaveCount(0);
+
+  // Deactivate B1: it drops off the print sheet. There is no delete control.
+  await page.getByRole("button", { name: "Deactivate B1" }).click();
+  await expect(page.getByText("Inactive", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /delete/i })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Print QR codes" }).click();
+  await expect(page.getByRole("article")).toHaveCount(1);
+  const card = page.getByRole("article", { name: "Table A4" });
+  await expect(
+    card.getByRole("img", { name: "QR code for table A4" }).locator("svg"),
+  ).toBeVisible();
+  await expect(card).toContainText("Portal Test Kitchen");
+  await expect(card).toContainText("Scan to order");
+
+  // Reactivate B1 and rename A4 inline.
+  await page.getByRole("link", { name: "Back to tables" }).click();
+  await page.getByRole("button", { name: "Reactivate B1" }).click();
+  await expect(page.getByText("Inactive", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit A4" }).click();
+  await page.getByLabel("Name for A4").fill("A5");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "A5" })).toBeVisible();
+});
