@@ -39,13 +39,19 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Floor-staff portal views are covered by role-prop render tests and pgTAP, not e2e.** Why: Phase 1 has no invite flow and no secret key, so e2e cannot sign in as `role = staff`. Consequence: gated item in section 9. Rejected: test-only membership seeding (new infrastructure for a Phase 2 flow).
 - **2026-09-29 — `seed.sql` dietary tags use the vocabulary values (`vegetarian`, `gluten-free`), not `V` and `GF`.** Incident: the spec audit found that saving any seeded item in the new form would silently drop its tags. Consequence: seed fixed; a Vitest drift guard reads `seed.sql` and fails on any tag outside the vocabulary (falsified by restoring one `V`). If the hosted project was seeded with the old values, it needs the same change.
 - **2026-09-29 — `toAppError` takes the meaning of a unique violation per form.** Why: a duplicate table label read "That link is taken." Consequence: codes `label_taken`, `category_not_empty`, `not_found`; the onboarding default stays `slug_taken`.
+- **2026-09-29 — Brief 02 accepted and merged.** Ari: "PR good to go". Consequence: PR #3 `MERGED @ 19159cb`; builder calls (a) to (m) accepted as built. The acceptance run's phone scan of a printed card was not reported, so coverage keeps it unverified.
+- **2026-09-29 — Open decision 8 ruled: yes, as the first task of Brief 03.** Ari chose the recommendation. Consequence: a migration adds a dietary-tag check and a time zone trigger, mapping legacy `V`/`GF` tags first so the hosted project can apply it. Rejected: deferring (zod as the only check).
+- **2026-09-29 — Invariant 6 gains `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.** Ari agreed after reviewing the risk: the site key is public by design; the Turnstile secret stays in Supabase Auth config only. Two conditions, both in Brief 03: CAPTCHA is enabled on the hosted project only after the widget is deployed on every form that needs it (the switch is project-wide), and a failed or blocked widget shows the diner a retry message. Consequence: `src/lib/env.ts` allow-list and `.env.example`; Vercel needs the key before a build with it deploys. Rejected: no Turnstile (bots could mint anonymous users behind a shared restaurant IP).
+- **2026-09-29 — Open decision 9 ruled: keep deleting discontinued items in Phase 1.** Consequence: backlog entry to revisit before sales reporting, because a deleted item nulls `order_items.menu_item_id`. Rejected for now: a `menu_items.is_active` migration.
+- **2026-09-29 — Open decision 10 ruled: no table delete; the PRD matrix becomes "create, edit, deactivate, rotate QR".** The Notion edit is Ari's. Rejected: deleting tables without history.
+- **2026-09-29 — Open decision 6 ruled: password reset and the PWA manifest and icons go in Brief 04.** Consequence: before the pilot, the hosted project needs custom SMTP, since Supabase's built-in email is rate-limited. Rejected: Brief 03 (scope), Phase 2 (PRD P1 lists reset in Phase 1).
 
 ## 2. What this app is
 
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-02-portal.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-03-diner.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
@@ -75,7 +81,7 @@ Ari treats security as a first-rate requirement, even in development. Violating 
 4. **Orders are only created through the `place_order` RPC.** The client sends item ids, quantities and notes. **Never send or trust a price from the client.** The database snapshots names and prices.
 5. **Staff order updates change `status` only**, through the DB state machine (`submitted → accepted → preparing → ready → served`, or `cancelled`). Column grants enforce this. Don't widen them. **Orders, sessions and tables with history are never hard-deleted** (FKs are `on delete restrict`). Cancel orders and deactivate tables instead. Realtime DELETE events aren't RLS-filtered the way inserts and updates are, which is one more reason to avoid deletes.
    Floor staff (`role = staff`) can 86 items only through `set_item_availability()`. Price and name edits are owner/manager-only.
-6. **Secrets:** only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL` may reach the browser. The secret key (`sb_secret_...`) is server-only, used only where RLS can't apply, and is **not needed in Phase 1**. Never prefix a secret with `NEXT_PUBLIC_`. Never commit `.env*` files except `.env.example`.
+6. **Secrets:** only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` may reach the browser. The Turnstile secret lives only in Supabase Auth config. The secret key (`sb_secret_...`) is server-only, used only where RLS can't apply, and is **not needed in Phase 1**. Never prefix a secret with `NEXT_PUBLIC_`. Never commit `.env*` files except `.env.example`.
 7. **Verify identity on the server with `supabase.auth.getClaims()`** in Server Components, Server Actions and Route Handlers. Never trust `getSession()` user data for authorization. RLS is the real boundary. UI checks are convenience only.
 8. **`SECURITY DEFINER` functions** pin `set search_path = ''`, fully qualify every object, check `auth.uid()` and membership themselves, `revoke all ... from public, anon`, and grant execute only to `authenticated`. Put helpers in schema `private` (not exposed via the Data API).
 9. **Validate every input twice:** zod in the Server Action, then constraints and checks in the database.
@@ -165,11 +171,13 @@ Numbered, never reused or deleted. STOP and ask; do not guess. When ruled: strik
 3. ~~**Restaurant timezone at onboarding.**~~ RESOLVED 2026-09-29 (Brief 02 Settings). Onboarding stays name + slug; default `America/New_York` until Settings ships.
 4. ~~**`server-only` package.**~~ RESOLVED 2026-09-29 (add in Brief 02). Approved dependency.
 5. **Does the no-deletes rule (invariant 5) cover the secret key?** `service_role` has delete grants, and `session_participants` / `order_items` cascade from their parents, so the secret key could hard-delete history. If yes: a new migration in a later brief. Not blocking in Phase 1 (the secret key is unused).
-6. **Which brief gets password reset (PRD P1) and the PWA manifest and icons (scaffold tree)?** Both are spec gaps with no home. No recommendation recorded.
+6. ~~**Which brief gets password reset (PRD P1) and the PWA manifest and icons (scaffold tree)?**~~ RESOLVED 2026-09-29 (Brief 04). Custom SMTP on hosted before the pilot.
 7. ~~**Turnstile on staff forms.**~~ RESOLVED 2026-09-29 (verify locally in Brief 03, then add where required).
-8. **Database checks for `restaurants.timezone` and `menu_items.dietary_tags` (invariant 9 half-met).** zod validates both; the database accepts any text, and Brief 02 is the first write path for both. Proposal (not applied, rule S1): one migration adding `check (dietary_tags <@ array['vegetarian','vegan','gluten-free','dairy-free','contains-nuts','spicy']::text[])` and a trigger that rejects a `timezone` missing from `pg_timezone_names` (a check constraint cannot query). Recommendation: yes, as the first migration of Brief 03, before diners read tags. Shipped mitigation: the kitchen clock no longer crashes the portal on an unknown zone.
-9. **Discontinued menu items: delete (current) or a hide flag?** Brief 02 deletes; order history keeps its snapshot (pgTAP portal test 25). A `menu_items.is_active` column would let owners re-list seasonal items. Recommendation: keep delete for Phase 1; revisit with modifiers in Phase 2.
-10. **Table delete: PRD 5.10 grants owners and managers "CRUD" on tables; Brief 02 ships no delete (builder call (a)).** Rule 5 forbids deleting tables with history; an unused table could be deleted. Recommendation: amend the PRD matrix to "create, edit, deactivate, rotate QR" and keep delete out of the UI.
+8. ~~**Database checks for `restaurants.timezone` and `menu_items.dietary_tags` (invariant 9 half-met).**~~ RESOLVED 2026-09-29 (yes, first task of Brief 03). zod validates both; the database accepts any text, and Brief 02 is the first write path for both. Proposal (not applied, rule S1): one migration adding `check (dietary_tags <@ array['vegetarian','vegan','gluten-free','dairy-free','contains-nuts','spicy']::text[])` and a trigger that rejects a `timezone` missing from `pg_timezone_names` (a check constraint cannot query). Recommendation: yes, as the first migration of Brief 03, before diners read tags. Shipped mitigation: the kitchen clock no longer crashes the portal on an unknown zone.
+9. ~~**Discontinued menu items: delete (current) or a hide flag?**~~ RESOLVED 2026-09-29 (keep delete in Phase 1; revisit before sales reporting). Brief 02 deletes; order history keeps its snapshot (pgTAP portal test 25). A `menu_items.is_active` column would let owners re-list seasonal items. Recommendation: keep delete for Phase 1; revisit with modifiers in Phase 2.
+10. ~~**Table delete: PRD 5.10 grants owners and managers "CRUD" on tables; Brief 02 ships no delete (builder call (a)).**~~ RESOLVED 2026-09-29 (no table delete; Ari amends the PRD matrix). Rule 5 forbids deleting tables with history; an unused table could be deleted. Recommendation: amend the PRD matrix to "create, edit, deactivate, rotate QR" and keep delete out of the UI.
+11. **Items in hidden categories, or with no category, are still orderable.** `place_order` checks only `is_available` and the restaurant, so a crafted request can order an item the portal shows as "hidden from diners". Hiding is UI-only. Fix: `place_order` also requires an active category (an RPC change, rule S1). Recommendation: yes, in Brief 04 with the board. Not blocking Brief 03, whose menu never offers such items.
+12. **Staff sign-in and sign-up run in Server Actions, so Supabase sees Vercel's IP for every staff member.** The `sign_in_sign_ups` limit (30 per 5 min per IP) is then shared across all restaurants, and CAPTCHA tokens are redeemed from the server. Options: move staff auth calls to the browser client, or raise the limit. Recommendation: move them to the browser in Brief 04; low risk at pilot scale.
 
 ## 7. Definition of done
 
@@ -194,18 +202,17 @@ A gate is one brief. "Done" means both halves.
 
 Current state only. History is in section 1.
 
-**Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29). Branch `phase-1/brief-01-foundation` can be deleted after Brief 02 merges. Gate `PM-ACCEPTED` is implied by Ari's merge; the acceptance run on the Vercel preview was not separately recorded.
+**Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29).
 
-**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2`, PR #3 (https://github.com/aricompa/salu/pull/3) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29): lint, typecheck, format, Vitest 134/134 (18 files), pgTAP 68/68, `supabase db lint` clean, types no drift, production build (all `/restaurant/*` dynamic), Playwright 5/5 on the production build · gate **DESK-GREEN**; CI: see PR #3 checks (pickup step 1 verifies); PM acceptance pending; review file `PM_REVIEW_brief-02.md` · next: Ari reviews PR #3 and rules on open decisions 8, 9, 10 and builder calls (a) to (m).
+**Stream: Brief 02** — `MERGED @ 19159cb` (PR #3, 2026-09-30 UTC), `PM-ACCEPTED` 2026-09-29 ("PR good to go"). The phone scan of a printed card was not reported. Branch `phase-1/brief-02-portal` can be deleted.
 
-All seven Brief 02 tasks are built. Commits: `519268c` brief docs, `aee93a8` task 1, `4f3695c` tasks 2 and 3, `fb7b2bb` tasks 4 and 5, `750a23e` task 6, `61ff087` task 7 tests and screenshots, `2a908a1` audit fixes, `272ffff` handoff, then the PM review file and the row-count guard test.
+**Stream: Brief 03** — `phase-1/brief-03-diner`, cut from `main @ 19159cb` · worktree `/Users/ari/salu` · gate **OPEN**: Ari said "agree, proceed" on 2026-09-29; writing the brief, then building through to the PR.
 
 **PICK UP HERE** (run top to bottom):
-1. `git fetch && gh pr view 3 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log.
-2. If PR #3 is open: stop. Brief 03 does not start (section 2). Answer review comments on the branch only.
-3. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` for Brief 02 here, move `server-only`, time zone and portal rows forward in section 10, and point "Active brief" at Brief 03.
-4. Write `docs/phase-1/BRIEF-03-diner.md` from the README outline plus: open decision 8's migration (if ruled yes) as its first task, open decision 7's Turnstile check, the sold-out copy that names the item (section 9), and PRD P3's "place a test order" link.
-5. `npm run db:start && npm run db:reset && npm run check` → green before any Brief 03 code.
+1. `git branch --show-current` → `phase-1/brief-03-diner`. `git log --oneline main..HEAD` → docs commits, then one commit per finished task. `git status --short` → empty between tasks.
+2. `npm run db:start && npm run db:reset && npm run check && npm run format:check` → all passing. Report failures as failures.
+3. Continue at the first task in `docs/phase-1/BRIEF-03-diner.md` without a commit. Commit per task with trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+4. Before the PR: `npm run build && CI=1 npx playwright test`, spec-reconciliation agent, screenshots at 390×844, `PM_REVIEW_brief-03.md`, then `gh pr create` and stop.
 
 ## 9. Gated / deferred items
 
@@ -244,6 +251,8 @@ Pre-registered bright lines that later delivery pressure cannot relax: security 
 - **Phase 4:** shared-table order visibility (2026-09-28 log entry).
 - **Phase 5:** load test Realtime against plan limits; switch Postgres Changes to Broadcast from the database with private channels if needed (should stay inside `src/lib/` plus one migration). Web push, Sentry.
 - **Tooling:** upgrade to TypeScript 6.1+ and ESLint 10 when eslint-config-next supports them.
+- **Before sales reporting (Phase 5):** revisit item delete versus a hide flag (open decision 9); a deleted item nulls `order_items.menu_item_id`.
+- **Before the pilot:** custom SMTP on the hosted project (Supabase's built-in email is rate-limited).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
