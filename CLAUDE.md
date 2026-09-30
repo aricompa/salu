@@ -32,13 +32,15 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Restaurant timezone is set on the Brief 02 Settings page, not at onboarding.** Resolves open decision 3. Why: owners can already update `restaurants.timezone`; onboarding stays name + slug. Consequence: default stays `America/New_York` until Settings ships. Rejected: a picker at onboarding (scope creep on Brief 01, Settings covers it).
 - **2026-09-29 — Add the `server-only` package in Brief 02.** Resolves open decision 4. Why: server modules fail the build if a client component imports them, at zero runtime cost. Consequence: approved dependency under rule S2; Brief 02 adds it and marks `src/lib/supabase/server.ts`, `src/lib/auth.ts` and `src/lib/env.ts`. Rejected: relying on review alone.
 - **2026-09-29 — Turnstile on staff forms: verify locally in Brief 03, then add the widget wherever Supabase requires a token.** Resolves open decision 7. Why: Supabase CAPTCHA is one project-wide switch, so the test is cheap and decisive. Consequence: Brief 03 turns CAPTCHA on locally, signs in as staff with no token, and adds the widget where that fails. Rejected: shipping the widget on `/login` in Brief 02 before the diner flow exists.
+- **2026-09-29 — Correction to the `server-only` entry above (same date): `src/lib/env.ts` is not marked.** Why: `src/lib/supabase/client.ts` (the browser client) imports it, so marking it would break every client component that uses Supabase. Consequence: Brief 02 marks `src/lib/supabase/server.ts`, `src/lib/auth.ts`, `src/lib/staff-auth.ts`, `src/lib/restaurants.ts` and new server lib modules; `src/lib/supabase/proxy.ts` stays unmarked. Rejected: splitting `env.ts` into server and browser halves (no secret lives in it; all three vars are browser-safe under invariant 6).
+- **2026-09-29 — Brief 02 builder calls, pending PM review.** Written into `docs/phase-1/BRIEF-02-portal.md` without a separate ruling; Ari's `go` accepted the brief as drafted. (a) Tables have no delete control, only deactivate (rule 5). (b) A category can be deleted only when it has no items, because `on delete set null` would orphan them off the diner menu. (c) Items can be deleted with an in-page confirmation, because `menu_items` has no hide flag and order history keeps its snapshot. (d) Dietary tags are a fixed six-value vocabulary. (e) Floor staff see no QR tokens or print sheet, although RLS lets members read tokens (screen exposure, not access). (f) Reordering uses up/down buttons, not drag (keyboard and screen-reader users). Rejected: asking before each; all are reversible UI choices inside the existing grants.
 
 ## 2. What this app is
 
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-01-foundation.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-02-portal.md`. Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
@@ -184,26 +186,24 @@ A gate is one brief. "Done" means both halves.
 
 Current state only. History is in section 1.
 
-**Stream: Brief 01** — `phase-1/brief-01-foundation @ 04ec15c` · worktree `/Users/ari/salu` · **UNCOMMITTED:** `CLAUDE.md` (this reconciliation), `docs/DECISIONS.md` (now a pointer); nothing new to add, nothing to leave untracked · desk: lint, typecheck, vitest 57/57 (7 files), pgTAP 43/43 re-run 2026-09-29 and green; Playwright 2/2 and CI run 36514750863 green (2026-09-28, not re-run) · gate **OPEN**: PR #2 open, 0 reviews, mergeable · next: Ari reviews and merges https://github.com/aricompa/salu/pull/2
+**Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29). Branch `phase-1/brief-01-foundation` can be deleted after Brief 02 merges. Gate `PM-ACCEPTED` is implied by Ari's merge; the acceptance run on the Vercel preview was not separately recorded.
+
+**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2` · worktree `/Users/ari/salu` · committed through the brief docs commit; task commits follow one per task · desk at cut: lint, typecheck, vitest 57/57 (7 files), pgTAP 43/43 on `main @ c52c3e2`, CI run 36647895536 green (2026-09-29) · gate **OPEN**: Ari said `go` on 2026-09-29; building.
+
+Brief 02 checklist (one commit each; `npm run check` and `npm run format:check` before each):
+1. `feat(portal): groundwork` — `server-only`, `src/lib/{roles,menu,tables,settings}.ts`, validation schemas, nav, dashboard links
+2. `feat(menu): categories` — list, add, rename, hide, reorder, delete-when-empty
+3. `feat(menu): items and 86 toggle` — item form, cents parsing, inline toggle via `set_item_availability()`, delete with dialog
+4. `feat(tables): tables and QR rotation` — add, edit, deactivate, rotate with dialog, duplicate-label copy
+5. `feat(tables): QR print sheet` — server SVG, 6 per page, owner/manager only
+6. `feat(settings): restaurant, orders, timezone` — three forms, kitchen clock
+7. `test: portal pgTAP, e2e and screenshots` — `phase1_portal.test.sql` with falsification, `e2e/portal-setup.spec.ts`, build, spec-reconciliation, PR
 
 **PICK UP HERE** (run top to bottom):
-1. `git branch --show-current` → `phase-1/brief-01-foundation`. `git status --short` → only `CLAUDE.md` and `docs/DECISIONS.md` modified. If the tree differs, stop and reconcile this section first.
-2. `npm run db:start && npm run check` → 57 vitest, 43 pgTAP, all passing. Report failures as failures.
-3. If Ari said `commit`, run with this message:
-   ```
-   docs: reconcile CLAUDE.md to the documentation standard
-
-   Move the decision log from docs/DECISIONS.md into CLAUDE.md, number
-   every rule so it can be cited, add roles, known open decisions (from
-   the PR #2 "Needs Ari" list), per-gate definition of done, handoff
-   status, gated items, coverage state and backlog. No rule text changed.
-
-   Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-   ```
-   then `git push`. Otherwise leave it uncommitted.
-4. Check PR #2: `gh pr view 2 --json state,mergedAt`. If not merged, stop; Brief 02 does not start (section 2).
-5. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` here, write `docs/phase-1/BRIEF-02-portal.md` in full from the outline in `docs/phase-1/README.md`, point "Active brief" at it, then `git checkout -b phase-1/brief-02-portal`.
-6. Open decisions 1, 5 and 6 remain. Brief 02 needs none of them; Brief 03 may need 6 (password reset placement).
+1. `git branch --show-current` → `phase-1/brief-02-portal`. `git log --oneline main..HEAD` → the commits for the checklist items done so far. `git status --short` → empty between tasks.
+2. `npm run db:start && npm run check && npm run format:check` → all passing. Report failures as failures.
+3. Continue at the first unchecked item in the Brief 02 checklist above. Commit per task with trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+4. Before the PR: `npm run build && npm run test:e2e`, spec-reconciliation agent, screenshots, then `gh pr create` and stop.
 
 ## 9. Gated / deferred items
 
