@@ -1,6 +1,6 @@
 import "server-only";
+import type { Tables } from "@/lib/db/types";
 import { toAppError, type ActionResult } from "@/lib/errors";
-import type { OrderStatus } from "@/lib/order-status";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderInput } from "@/lib/validation/diner";
 
@@ -62,24 +62,22 @@ export async function getRestaurantCurrency(restaurantId: string): Promise<strin
   return data?.currency ?? "usd";
 }
 
-export type DinerOrder = {
-  id: string;
-  session_id: string;
-  status: OrderStatus;
-  subtotal_cents: number;
-  notes: string | null;
-  submitted_at: string;
-  accepted_at: string | null;
-  ready_at: string | null;
-  served_at: string | null;
-  cancelled_at: string | null;
-  order_items: Array<{
-    id: string;
-    item_name: string;
-    unit_price_cents: number;
-    quantity: number;
-    notes: string | null;
-  }>;
+export type DinerOrder = Pick<
+  Tables<"orders">,
+  | "id"
+  | "session_id"
+  | "status"
+  | "subtotal_cents"
+  | "notes"
+  | "submitted_at"
+  | "accepted_at"
+  | "ready_at"
+  | "served_at"
+  | "cancelled_at"
+> & {
+  order_items: Array<
+    Pick<Tables<"order_items">, "id" | "item_name" | "unit_price_cents" | "quantity" | "notes">
+  >;
 };
 
 /** One of the diner's own orders with its lines (RLS: placed_by = the diner). */

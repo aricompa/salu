@@ -1,18 +1,16 @@
 import { createClient } from "@/lib/supabase/client";
-import type { OrderStatus } from "@/lib/order-status";
+import type { Tables } from "@/lib/db/types";
 
-export type OrderChange = {
-  status: OrderStatus;
-  accepted_at: string | null;
-  ready_at: string | null;
-  served_at: string | null;
-  cancelled_at: string | null;
-};
+export type OrderChange = Pick<
+  Tables<"orders">,
+  "status" | "accepted_at" | "ready_at" | "served_at" | "cancelled_at"
+>;
 
 /**
  * Live status for one order (rule A5): Postgres Changes on public.orders filtered by id.
- * RLS decides what this diner may receive. onLive fires on every (re)subscribe, so the
- * caller refetches then: that covers reconnects and the gap between render and subscribe.
+ * RLS decides what this diner may receive. onLive fires each time the change feed is ready
+ * (first subscribe and every reconnect), so the caller refetches then: that covers
+ * reconnects and anything that changed between render and the feed going live.
  * Returns the unsubscribe function; call it on unmount.
  */
 export function subscribeToOrder(
@@ -39,9 +37,15 @@ export function subscribeToOrder(
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
         (payload) => handlers.onChange(payload.new as OrderChange),
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") handlers.onLive();
+      // The join reply ("SUBSCRIBED") comes before the database change feed is ready; a
+      // change in between would be missed. Realtime says when the feed is really live.
+      .on("system", {}, (payload: { extension?: string; status?: string }) => {
+        if (payload.extension !== "postgres_changes") return;
+        if (payload.status === "ok") handlers.onLive();
         else handlers.onInterrupted();
+      })
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") handlers.onInterrupted();
       });
   });
 

@@ -5,7 +5,6 @@ import { loadCart, saveCart, type Cart } from "@/lib/cart";
 
 type Store = { cart: Cart; listeners: Set<() => void> };
 const stores = new Map<string, Store>();
-const EMPTY: Cart = [];
 
 function session(): Storage | undefined {
   try {
@@ -24,7 +23,10 @@ function storeFor(key: string): Store {
   return store;
 }
 
-/** The cart for one table session, shared by the menu and cart pages. Server render: empty. */
+/**
+ * The cart for one table session, shared by the menu and cart pages. `null` until the
+ * browser has read sessionStorage: the server can't know the cart, and "empty" would flash.
+ */
 export function useCart(key: string) {
   const cart = useSyncExternalStore(
     (onChange) => {
@@ -32,8 +34,8 @@ export function useCart(key: string) {
       store.listeners.add(onChange);
       return () => store.listeners.delete(onChange);
     },
-    () => storeFor(key).cart,
-    () => EMPTY,
+    (): Cart | null => storeFor(key).cart,
+    () => null,
   );
   const update = useCallback(
     (change: (cart: Cart) => Cart) => {

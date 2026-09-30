@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Turnstile } from "@/components/ui/Turnstile";
 
-type Problem = null | "busy" | "error";
+type Problem = null | "busy" | "captcha" | "error";
 const BACKOFF_SECONDS = [5, 10, 20, 30];
 
 /** Checks the device (Turnstile), signs the diner in anonymously, then goes back to the scan URL. */
@@ -40,7 +40,7 @@ export function WelcomeGate({
         setBusyTries((n) => n + 1);
         setProblem("busy");
       } else {
-        setProblem("error");
+        setProblem(outcome === "captcha_failed" ? "captcha" : "error");
       }
     },
     [token, busyTries],
@@ -53,6 +53,13 @@ export function WelcomeGate({
   }, [wait]);
 
   const retry = () => {
+    if (failedBefore && busyTries === 0 && problem === "error") {
+      // The device is already signed in; only joining the table failed. Try the scan
+      // again instead of creating another anonymous user.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(`/t/${token}`);
+      return;
+    }
     setProblem(null);
     setAttempt((n) => n + 1); // a fresh widget, since tokens are single-use
   };
@@ -66,9 +73,11 @@ export function WelcomeGate({
         <p className="text-muted">
           {problem === "busy"
             ? "We're busy. Try again in a moment."
-            : problem === "error"
-              ? "Something went wrong. Check your connection and try again."
-              : "No sign-up needed. The menu opens in a moment."}
+            : problem === "captcha"
+              ? "We couldn't check this device. Try again."
+              : problem === "error"
+                ? "Something went wrong. Check your connection and try again."
+                : "No sign-up needed. The menu opens in a moment."}
         </p>
       </div>
       {!problem && <Turnstile key={attempt} siteKey={siteKey} action="diner" onToken={onToken} />}

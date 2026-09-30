@@ -40,7 +40,7 @@ export function MenuView({
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const [added, setAdded] = useState("");
-  const totals = cartTotals(cart);
+  const totals = cartTotals(cart ?? []);
   const money = (cents: number) => formatCents(cents, currency);
 
   const openItem = (item: MenuViewItem) => {

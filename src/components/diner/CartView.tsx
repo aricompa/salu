@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, buttonStyles } from "@/components/ui/Button";
 import { useOnline } from "@/components/ui/OfflineBanner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Stepper } from "@/components/ui/Stepper";
 import { Textarea } from "@/components/ui/Textarea";
 import {
@@ -37,8 +38,20 @@ export function CartView({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const online = useOnline();
-  const totals = cartTotals(cart);
   const money = (cents: number) => formatCents(cents, currency);
+
+  if (cart === null) {
+    return (
+      <div className="flex flex-col gap-3 py-4">
+        <p role="status" className="sr-only">
+          Loading your order
+        </p>
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+  const totals = cartTotals(cart);
 
   if (cart.length === 0) {
     return (
@@ -138,7 +151,7 @@ export function CartView({
           <p className="text-center text-sm text-muted">
             {online
               ? "Sent straight to the kitchen."
-              : "You're offline. Your order sends when the connection is back."}
+              : "You're offline. Reconnect to place your order."}
           </p>
         </div>
       </div>

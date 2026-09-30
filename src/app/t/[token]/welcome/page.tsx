@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { publicEnv } from "@/lib/env";
 import { qrTokenSchema } from "@/lib/validation/diner";
 import { WelcomeGate } from "./WelcomeGate";
@@ -18,7 +18,8 @@ export default async function WelcomePage({
   searchParams: Promise<{ retry?: string }>;
 }) {
   const [{ token }, { retry }] = await Promise.all([params, searchParams]);
-  if (!qrTokenSchema.safeParse(token).success) notFound();
+  if (!qrTokenSchema.safeParse(token).success)
+    redirect(`/t/${encodeURIComponent(token)}/unavailable`);
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-end gap-6 p-6 pb-16">
       <WelcomeGate
