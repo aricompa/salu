@@ -69,14 +69,15 @@ The tasks are ordered so the exit path comes first. Password reset and the PWA m
 ### 6. Toast primitive
 - `src/components/ui/Toast.tsx`: `role="status"`, auto-dismiss, reduced-motion aware. Used for board actions and for Brief 02's QR-rotation confirmation (builder call (i)).
 
-### 7. Password reset (PRD P1), after ruling on open decision 12
+### 7. Staff auth in the browser (open decision 12, ruled 2026-09-30) and password reset (PRD P1)
+- Sign-in, sign-up and reset call Supabase Auth from the browser client under `src/lib/`; zod gives form feedback; redirects stay same-origin (`safeNextPath`) and refresh server state. The existing e2e and the no-token refusal test stay green.
 - "Forgot password?" on `/login` → email plus Turnstile → `resetPasswordForEmail` with the CAPTCHA token (Auth requires it on `/recover`, verified 2026-09-29). Always answer "If an account exists for that email, we sent a link", so the form doesn't reveal accounts.
 - Local `supabase/templates/recovery.html` (token_hash), wired in `config.toml`; the hosted template is Ari's step. `/auth/confirm` handles `type=recovery` and lands on a new-password page that requires a non-anonymous session (checked with `getClaims()`).
 
 ### 8. PWA manifest and icons
 - `src/app/manifest.ts`, `src/app/icon.tsx` and `src/app/apple-icon.tsx` (built-in `ImageResponse` from `next/og`; no dependency). The pre-commit hook blocks hex in `src/`, and the brand colour is open (decision 1), so colours use `rgb()`; logged as a rule U3 exception.
 
-### 9. Open decision 11, only if ruled in
+### 9. Open decision 11 (ruled in 2026-09-30)
 - A new migration redefines `place_order` to also require the item's category to be active, with pgTAP negatives and falsification.
 
 ### 10. Phase 1 exit checklist and PR
