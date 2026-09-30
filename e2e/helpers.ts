@@ -170,7 +170,10 @@ export async function createDinerFixture(): Promise<DinerFixture> {
     {
       method: "POST",
       prefer: "return=representation",
-      body: ["A1", "A2", "B1", "C1", "C2"].map((label) => ({ restaurant_id: restaurantId, label })),
+      body: ["A1", "A2", "B1", "C1", "C2", "D1"].map((label) => ({
+        restaurant_id: restaurantId,
+        label,
+      })),
     },
   );
   return {

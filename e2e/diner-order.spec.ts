@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { createDinerFixture, rest, type DinerFixture } from "./helpers";
+import { createClient } from "@supabase/supabase-js";
+import {
+  PUBLISHABLE_KEY,
+  SUPABASE_URL,
+  TEST_CAPTCHA_TOKEN,
+  createDinerFixture,
+  rest,
+  type DinerFixture,
+} from "./helpers";
 
 let fx: DinerFixture;
 test.beforeAll(async () => {
@@ -131,6 +139,29 @@ test("placing an order: the database prices it, and a sold-out item is named and
     notes: "Celebrating a birthday",
     status: "submitted",
   });
+
+  // The status page is live: staff changes arrive without a reload.
+  await expect(
+    page.getByRole("heading", { name: "Your order's in. The kitchen has it." }),
+  ).toBeVisible();
+  await expect(page.getByText("2 × Grilled Salmon")).toBeVisible();
+  await expect(page.getByText("Live: this page updates on its own.")).toBeVisible({
+    timeout: 15_000,
+  });
+  for (const [status, copy] of [
+    ["accepted", "Accepted. Your food is on its way to being made."],
+    ["ready", "Ready. It's coming to your table."],
+  ] as const) {
+    await rest(fx.ownerJwt, `orders?id=eq.${orderId}`, { method: "PATCH", body: { status } });
+    await expect(page.getByRole("heading", { name: copy })).toBeVisible({ timeout: 10_000 });
+  }
+  await expect(page.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Done");
+  await expect(page.getByRole("listitem").filter({ hasText: "Ready" })).toContainText("Now");
+
+  // The menu links back to the active order.
+  await page.getByRole("link", { name: "Order more" }).click();
+  await page.getByRole("link", { name: "Orders" }).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${orderId}$`));
 });
 
 test("a table closed by staff says so instead of opening a new tab", async ({ page }) => {
@@ -150,4 +181,54 @@ test("a table closed by staff says so instead of opening a new tab", async ({ pa
   await page.getByRole("link", { name: "Start a new tab" }).click();
   await expect(page).toHaveURL(/\/menu$/);
   await expect(page.getByRole("link", { name: /View order/ })).toHaveCount(0);
+});
+
+test("another diner's device receives no realtime changes for someone else's order", async ({
+  page,
+}) => {
+  await scanAndAdd(page, "D1", ["Tuna Crudo"]);
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+  const orderId = page.url().split("/").pop() as string;
+  await expect(page.getByText("Live: this page updates on its own.")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // A second anonymous diner subscribes to that order id, and to every order.
+  const spy = createClient(SUPABASE_URL, PUBLISHABLE_KEY, { auth: { persistSession: false } });
+  const signIn = await spy.auth.signInAnonymously({
+    options: { captchaToken: TEST_CAPTCHA_TOKEN },
+  });
+  expect(signIn.error).toBeNull();
+  await spy.realtime.setAuth();
+  const received: unknown[] = [];
+  const subscribed = new Promise<void>((resolve, reject) => {
+    spy
+      .channel("spy")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+        (p) => received.push(p),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (p) =>
+        received.push(p),
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") resolve();
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") reject(new Error(status));
+      });
+  });
+  await subscribed;
+
+  // Positive control: the diner who placed it sees the change live.
+  await rest(fx.ownerJwt, `orders?id=eq.${orderId}`, {
+    method: "PATCH",
+    body: { status: "accepted" },
+  });
+  await expect(
+    page.getByRole("heading", { name: "Accepted. Your food is on its way to being made." }),
+  ).toBeVisible({ timeout: 10_000 });
+  await page.waitForTimeout(3_000);
+  expect(received).toEqual([]);
+  await spy.removeAllChannels();
 });
