@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Badge, Button, Sheet, Stepper, Textarea, buttonStyles } from "@/components/ui";
+import { Badge } from "@/components/ui/Badge";
+import { Button, buttonStyles } from "@/components/ui/Button";
+import { Sheet } from "@/components/ui/Sheet";
+import { Stepper } from "@/components/ui/Stepper";
+import { Textarea } from "@/components/ui/Textarea";
 import { MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } from "@/lib/cart";
 import { formatCents } from "@/lib/money";
 import { CategoryTabs } from "./CategoryTabs";

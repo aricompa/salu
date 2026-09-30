@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Input, Select, Textarea, buttonStyles } from "@/components/ui";
-import { DIETARY_TAGS } from "@/lib/validation/menu";
+import { DIETARY_TAGS } from "@/lib/dietary";
 import { saveItemAction, type ItemFormResult } from "./actions";
 
 export type ItemFormDefaults = {

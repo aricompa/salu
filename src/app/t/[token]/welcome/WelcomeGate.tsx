@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Turnstile } from "@/components/ui";
-import { signInDiner } from "@/lib/diner-auth";
+import { Button } from "@/components/ui/Button";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 type Problem = null | "busy" | "error";
 const BACKOFF_SECONDS = [5, 10, 20, 30];
@@ -25,6 +25,8 @@ export function WelcomeGate({
   const onToken = useCallback(
     async (captchaToken: string | null) => {
       if (!captchaToken) return;
+      // Loaded on demand: supabase-js is 66 KB gzip, and the device check takes a moment anyway.
+      const { signInDiner } = await import("@/lib/diner-auth");
       const outcome = await signInDiner(captchaToken);
       if (outcome === "ok") {
         // A real navigation on purpose: /t/<token> is a Route Handler that joins the table

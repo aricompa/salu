@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/components/ui";
+import { cn } from "@/components/ui/cn";
 
 /**
  * Sticky, horizontally scrollable section tabs with scroll-spy: the tab for the section

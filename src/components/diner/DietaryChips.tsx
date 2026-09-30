@@ -1,4 +1,4 @@
-import { DIETARY_TAGS } from "@/lib/validation/menu";
+import { DIETARY_TAGS } from "@/lib/dietary";
 
 /** Short chips ("GF") with the full word for screen readers ("Gluten-free"). */
 export function DietaryChips({ tags }: { tags: string[] }) {

@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button, Stepper, Textarea, buttonStyles, useOnline } from "@/components/ui";
+import { Button, buttonStyles } from "@/components/ui/Button";
+import { useOnline } from "@/components/ui/OfflineBanner";
+import { Stepper } from "@/components/ui/Stepper";
+import { Textarea } from "@/components/ui/Textarea";
 import {
   cartStorageKey,
   cartTotals,

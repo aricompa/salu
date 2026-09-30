@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buttonStyles } from "@/components/ui";
+import { buttonStyles } from "@/components/ui/Button";
 import { OrderStatusView } from "@/components/diner/OrderStatusView";
 import { getDinerSession } from "@/lib/diner";
 import { getDinerOrder, getRestaurantCurrency } from "@/lib/diner-orders";

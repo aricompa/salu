@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/components/ui";
+import { cn } from "@/components/ui/cn";
 import { STATUS_COPY, timelineSteps, type OrderStatus } from "@/lib/order-status";
-import { subscribeToOrder } from "@/lib/realtime";
 
 /** Time in the device's zone (rule A7); the server can't know it, so the browser formats. */
 function LocalTime({ iso }: { iso: string }) {
@@ -45,18 +44,26 @@ export function OrderStatusView({
     refresh.current = router.refresh;
   }, [router]);
 
-  useEffect(
-    () =>
-      subscribeToOrder(orderId, {
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    let stopped = false;
+    // Loaded after first paint: the realtime client (supabase-js) is 66 KB gzip.
+    void import("@/lib/realtime").then(({ subscribeToOrder }) => {
+      if (stopped) return;
+      unsubscribe = subscribeToOrder(orderId, {
         onChange: (change) => setStatus(change.status),
         onLive: () => {
           setConnection("live");
           refresh.current();
         },
         onInterrupted: () => setConnection("reconnecting"),
-      }),
-    [orderId],
-  );
+      });
+    });
+    return () => {
+      stopped = true;
+      unsubscribe?.();
+    };
+  }, [orderId]);
 
   const steps = timelineSteps(status);
   return (

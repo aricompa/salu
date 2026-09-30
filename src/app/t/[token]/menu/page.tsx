@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { OfflineBanner } from "@/components/ui";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { MenuView } from "@/components/diner/MenuView";
 import { getDinerSession } from "@/lib/diner";
 import { getDinerMenu } from "@/lib/diner-menu";
