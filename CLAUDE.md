@@ -46,6 +46,12 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Open decision 10 ruled: no table delete; the PRD matrix becomes "create, edit, deactivate, rotate QR".** The Notion edit is Ari's. Rejected: deleting tables without history.
 - **2026-09-29 — Open decision 6 ruled: password reset and the PWA manifest and icons go in Brief 04.** Consequence: before the pilot, the hosted project needs custom SMTP, since Supabase's built-in email is rate-limited. Rejected: Brief 03 (scope), Phase 2 (PRD P1 lists reset in Phase 1).
 - **2026-09-29 — Decision 7 verified: CAPTCHA covers staff forms too.** With `[auth.captcha]` on locally (Turnstile, Cloudflare's always-pass test secret), anonymous sign-in, email sign-up, password sign-in and password reset all return 400 `captcha_failed` without a token; email-link verify and token refresh do not check. All five e2e tests failed until tokens were sent. Consequence: Brief 03 task 2 puts the widget on the staff forms and a dummy token in `e2e/helpers.ts`. Test keys from developers.cloudflare.com/turnstile/troubleshooting/testing/; the CLI's `provider = "turnstile"` confirmed in the installed binary.
+- **2026-09-29 — Brief 03 build calls, pending PM review.** Kept deliberately; several were raised by the pre-PR spec audit. (n) The scan route redirects with 307 (what `redirect()` returns in a Route Handler), not the brief's 303; a GET stays a GET. (o) PRD D1 deviation: before sign-in the welcome page can't name the restaurant or table (`join_table` needs a user; rule 3 forbids a token lookup), so it says "Getting your table ready…"; the menu header names both one hop later. (p) An inner page opened without scanning says "Scan the code on your table"; a table closed by staff says "This table has been closed. Thanks for dining!" (PRD D10). (q) An expired Turnstile token refreshes silently; only a failed or blocked check shows the retry copy. (r) Turnstile's script loads once through a shared promise, not `next/script`, which only notifies the first component (a widget re-mounted mid-load never rendered). (s) The place-order action resolves the table session before zod, so a closed table answers `session_closed` whatever the cart holds (A4 lists zod first). (t) The entry is a Route Handler plus a welcome page, not the scaffold plan's `t/[token]/page.tsx`: a GET that joins and sets a cookie can't be a Server Component. (u) The sold-out item is named by re-reading availability after `item_unavailable`, with no RPC change. Rejected: an RPC change to return the item (rule S1) for (u); a page component for (t).
+- **2026-09-29 — Realtime needs the diner's JWT before joining, and "live" means the change feed is ready.** Incident: the order page showed "Live" and received nothing; the channel joined before the browser client attached the session, so Realtime treated the diner as anonymous and refused the subscription. A second race: the join reply arrives before the Postgres change feed is ready, and a change in between was missed (1 in 5 runs). Consequence: `src/lib/realtime.ts` awaits `realtime.setAuth()` before subscribing, and marks live and refetches on the `postgres_changes` system message. An e2e proves another diner receives nothing (falsified by widening `orders_read`).
+- **2026-09-29 — Process: check every edit landed before reporting it.** Incident: a `sed` edit to the offline cart copy failed silently and was reported as fixed; the Brief 03 spec audit caught it. Consequence: after a scripted edit, grep for the new text (or fail on a missing match) before saying it's done.
+- **2026-09-29 — Diner pages stay under PRD 5.9's 150 KB first-load JS.** Measured on a local production build: welcome 141, menu 147, cart 146, order 144 KB gzip (were 299, 241, 147, 303). Consequence: the browser Supabase client doesn't use zod (the server validates env at boot); the tag vocabulary lives in zod-free `src/lib/dietary.ts`; supabase-js loads on demand on the welcome and order pages; diner components import UI primitives from their own files, not the barrel. Rejected: raising the budget.
+- **2026-09-29 — Rule A8 covers app code under `src/`.** Test code under `e2e/` may use `@supabase/supabase-js` directly to act as another user (the realtime negative test does); the pre-commit hook already scans `src/` only.
+- **2026-09-29 — Never run `supabase config push` from this repo without reviewing `[auth.captcha]`.** `config.toml` has CAPTCHA on with Cloudflare's always-pass test secret for local and CI; pushing it would switch hosted CAPTCHA on early with a test secret, breaking Ari's first Turnstile condition. Migrations go up with `supabase db push`, which doesn't touch auth config.
 
 ## 2. What this app is
 
@@ -91,7 +97,7 @@ Ari treats security as a first-rate requirement, even in development. Violating 
 ### Architecture rules
 
 - **A1. Routes.**
-  - Diner: `/t/[token]` (entry), `/t/[token]/menu`, `/t/[token]/cart`, `/t/[token]/orders/[orderId]`. The token URL is the diner's home, and each server render re-resolves the session through RLS.
+  - Diner: `/t/[token]` (entry: a Route Handler that joins and redirects; never prefetched), `/t/[token]/welcome` (device check and anonymous sign-in), `/t/[token]/unavailable`, `/t/[token]/menu`, `/t/[token]/cart`, `/t/[token]/orders/[orderId]`. The token URL is the diner's home, and each server render re-resolves the session through RLS.
   - Staff: `/login`, `/restaurant/onboarding`, `/restaurant/(portal)/{dashboard,orders,menu,tables,settings}`.
 - **A2. Proxy, not middleware.** Next.js 16 renamed `middleware.ts` to `proxy.ts`. Session refresh lives in `src/proxy.ts` and calls `src/lib/supabase/proxy.ts`. Don't create `middleware.ts`.
 - **A3. Server Components by default.** Use `'use client'` only for interactivity (cart, steppers, realtime board).
@@ -179,6 +185,7 @@ Numbered, never reused or deleted. STOP and ask; do not guess. When ruled: strik
 10. ~~**Table delete: PRD 5.10 grants owners and managers "CRUD" on tables; Brief 02 ships no delete (builder call (a)).**~~ RESOLVED 2026-09-29 (no table delete; Ari amends the PRD matrix). Rule 5 forbids deleting tables with history; an unused table could be deleted. Recommendation: amend the PRD matrix to "create, edit, deactivate, rotate QR" and keep delete out of the UI.
 11. **Items in hidden categories, or with no category, are still orderable.** `place_order` checks only `is_available` and the restaurant, so a crafted request can order an item the portal shows as "hidden from diners". Hiding is UI-only. Fix: `place_order` also requires an active category (an RPC change, rule S1). Recommendation: yes, in Brief 04 with the board. Not blocking Brief 03, whose menu never offers such items.
 12. **Staff sign-in and sign-up run in Server Actions, so Supabase sees Vercel's IP for every staff member.** The `sign_in_sign_ups` limit (30 per 5 min per IP) is then shared across all restaurants, and CAPTCHA tokens are redeemed from the server. Options: move staff auth calls to the browser client, or raise the limit. Recommendation: move them to the browser in Brief 04; low risk at pilot scale.
+13. **Cache the diner menu per restaurant?** PRD 5.9 says the menu is "server-rendered and cacheable per restaurant"; Brief 03 reads it on every request, because diner pages carry an anonymous session and must render dynamically (rule A9). Options: cache only the menu data (not the page) keyed by restaurant and invalidated on menu edits, or leave it uncached. Recommendation: measure scan-to-menu on a real phone in Brief 04 first; cache only if it misses the 1.5 s Wi-Fi target.
 
 ## 7. Definition of done
 
@@ -219,11 +226,12 @@ Current state only. History is in section 1.
 
 Each with the test that flips if it is ever gated in.
 
-- **Sold-out copy naming the item** (spec audit, left for Brief 03): needs the item name from `place_order`. Flips: the `errors.ts` drift test gains an `item_unavailable` case with a name.
 - **Secret-key hard deletes** (open decision 5): not fixed. Flips: a pgTAP negative test that `service_role` cannot delete from `orders`, `order_items`, `table_sessions`, `session_participants`.
-- **Password reset, PWA manifest and icons** (open decision 6): not built. Flips: an e2e for reset; a Playwright check that `/manifest.webmanifest` serves.
-- **Turnstile** (Brief 03): not built. Flips: a local sign-in with CAPTCHA on and no token must fail.
-- **DB checks on time zone and dietary tags** (open decision 8): proposed, not built. Flips: pgTAP tests that an owner cannot store `timezone = 'Mars/Olympus'` or a tag outside the vocabulary.
+- **Password reset, PWA manifest and icons** (Brief 04, ruled 2026-09-29): not built. Flips: an e2e for reset; a Playwright check that `/manifest.webmanifest` serves.
+- **Hidden-category items orderable through the RPC** (open decision 11): not fixed. Flips: a pgTAP test that `place_order` refuses an item whose category is hidden or missing.
+- **Staff auth from the browser** (open decision 12): not built. Flips: an e2e that staff sign-in still works with the auth call made client-side.
+- **Diner display name sheet** (PRD D2, Brief 04): not built. Flips: an e2e that a named diner's order shows the name on the board.
+- **Menu caching** (open decision 13): not built. Flips: a test that a menu edit is visible to diners on the next load.
 - **Floor-staff e2e** (2026-09-29 log): not built; render tests and pgTAP only. Flips: when staff invites ship (Phase 2), an e2e signs in as `role = staff` and sees only the 86 switch on the menu, no tokens on tables, and 404 on the print sheet.
 - **Toast primitive** (builder call (i)): not built. Flips: a render test that a toast announces through `role="status"` and respects reduced motion; the rotate confirmation moves to it.
 - **`qrcode` import rule**: rule A8 keeps it under `src/lib/`, but the pre-commit hook only checks `@supabase/*`. Flips: the hook blocks `from "qrcode"` outside `src/lib/`.
@@ -234,12 +242,13 @@ A clean desk suite never reads as validated.
 
 | Surface | Desk-only | Validated (hosted preview) | On-device |
 |---|---|---|---|
-| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 pgTAP falsification probes (2 in PR #2, 5 in PR #3); PR #3 also probed `server-only`, the seed drift guard and the row-count guard | not run against the hosted project by Claude Code (rule 10) | n/a |
-| lib, validation, UI primitives, portal components | Vitest 134/134, 18 files (2026-09-29) | n/a | n/a |
-| Staff sign-up → confirm → onboarding → dashboard | Playwright 2/2, Chromium, local production build (2026-09-29) and CI | Vercel preview builds; Ari's acceptance run: **unverified** | none |
-| Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables on Letter and A4, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
+| Schema, RLS, RPC grants, DB checks | pgTAP 78/78: 43 security + 25 portal + 10 checks (2026-09-29); pgTAP falsification probes: 2 in PR #2, 5 in PR #3, 3 in Brief 03; legacy-tag mapping rehearsed on a database in `main`'s state | not run against the hosted project by Claude Code (rule 10) | n/a |
+| lib, validation, UI primitives, components | Vitest 161/161, 22 files (2026-09-29) | n/a | n/a |
+| Staff sign-up → confirm → onboarding → dashboard, with Turnstile | Playwright 3/3 (incl. Auth refusing sign-in without a token, falsified), local production build (2026-09-29) | Vercel preview builds; Ari's acceptance run: **unverified** | none |
+| Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
 | Portal as floor staff | render tests + pgTAP only | none | none |
-| Diner flow, order board | not built | not built | none |
+| Diner: scan, Turnstile, menu, cart, place order, live status | Playwright 7/7, Chromium at desktop size plus 390×844 screenshots, local production build (2026-09-29); realtime negative test (another diner receives nothing), falsified; first-load JS 141 to 147 KB | **unverified** (needs Ari's hosted steps in the Brief 03 PR) | none |
+| Order board | not built | not built | none |
 | iPhone Safari, real QR | n/a | n/a | none until Brief 04 |
 
 ## 11. Backlog
