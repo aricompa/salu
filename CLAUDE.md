@@ -45,6 +45,7 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-29 — Open decision 9 ruled: keep deleting discontinued items in Phase 1.** Consequence: backlog entry to revisit before sales reporting, because a deleted item nulls `order_items.menu_item_id`. Rejected for now: a `menu_items.is_active` migration.
 - **2026-09-29 — Open decision 10 ruled: no table delete; the PRD matrix becomes "create, edit, deactivate, rotate QR".** The Notion edit is Ari's. Rejected: deleting tables without history.
 - **2026-09-29 — Open decision 6 ruled: password reset and the PWA manifest and icons go in Brief 04.** Consequence: before the pilot, the hosted project needs custom SMTP, since Supabase's built-in email is rate-limited. Rejected: Brief 03 (scope), Phase 2 (PRD P1 lists reset in Phase 1).
+- **2026-09-29 — Decision 7 verified: CAPTCHA covers staff forms too.** With `[auth.captcha]` on locally (Turnstile, Cloudflare's always-pass test secret), anonymous sign-in, email sign-up, password sign-in and password reset all return 400 `captcha_failed` without a token; email-link verify and token refresh do not check. All five e2e tests failed until tokens were sent. Consequence: Brief 03 task 2 puts the widget on the staff forms and a dummy token in `e2e/helpers.ts`. Test keys from developers.cloudflare.com/turnstile/troubleshooting/testing/; the CLI's `provider = "turnstile"` confirmed in the installed binary.
 
 ## 2. What this app is
 
