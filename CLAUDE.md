@@ -60,6 +60,7 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-30 — Open decision 12 ruled: staff sign-in, sign-up and password reset run in the browser.** Ari agreed after reviewing the security risk: Supabase Auth's API is public either way, session cookies are script-readable either way, and `getClaims()` plus RLS still guard every server path; moving removes the shared-Vercel-IP lockout and lets CAPTCHA see the user's IP. Consequence: an exception to rule A4 for auth calls only; client-side zod for form feedback, Supabase Auth as the enforcing check; post-sign-in redirects stay same-origin (`safeNextPath`) and refresh server state. Rejected: keeping auth in Server Actions.
 - **2026-09-30 — Prank protection: staff seat the table before it takes orders (PRD Q3, pulled from Phase 2 into Brief 04), on by default.** Ari raised photographed QR codes used to order from home. What stops that is proof of presence, not identity. Consequence: a restaurant setting `require_staff_open` (default on, owners and managers can turn it off); a member-only `open_table_session` RPC behind a "Seat" button on the board; `join_table` refuses a table with no open session while the setting is on (hint `table_not_open`), and the diner is told to ask their server. Older pgTAP fixtures seat tables first, with no assertion changed. Rejected: diner sign-in (a prankster can sign in too; friction for every diner; reverses invariant 2), geolocation (prompt, spoofable, blocked by our Permissions-Policy), a restaurant Wi-Fi check (diners use cellular), flagging first orders only (pranks still reach the board). Phase 3's card-on-file adds a cost to pranking later.
 - **2026-09-30 — PRD D10: a diner's open page learns a table closed on their next action, not live.** Ari chose the recommendation: no `table_sessions` in the realtime publication. Rejected: a second live subscription on diner pages.
+- **2026-09-30 — Diners don't see "Ready"; their timeline is Sent → Accepted → Preparing → Served.** Ari: diners gain nothing from knowing food is waiting at the pass; Ready stays on the staff board as the pickup trigger. Consequence: the diner status page shows an order in `ready` as Preparing (current step), drops the "Ready. It's coming to your table." copy, and the Brief 03 e2e changes to expect Preparing after a staff "ready"; the database state machine and the board are unchanged, so no migration. The PRD's D6 timeline and 5.7 "Ready" copy need Ari's edit. Rejected: removing `ready` from the state machine (staff need it).
 
 ## 2. What this app is
 
@@ -224,14 +225,19 @@ Current state only. History is in section 1.
 
 **Stream: Brief 03** — `MERGED @ e491a8f` (PR #4, 2026-09-30 UTC); CI on `main` green (run 36662871657); production deploy green. Acceptance run on a real phone passed for scan, order and live status (2026-09-30); the rotated-code check was not reported. Gate: `PM-ACCEPTED` 2026-09-30. Branch `phase-1/brief-03-diner` can be deleted.
 
-**Stream: Brief 04** — `phase-1/brief-04-order-board`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` · only this records commit so far · gate **OPEN**: Ari said go on 2026-09-30; brief being written for his review before any code.
+**Stream: Brief 04** — `phase-1/brief-04-order-board @ <see git log -1>`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` (only worktree) · committed and pushed; nothing uncommitted; docs-only commits since `main` (acceptance records, the brief, rulings) · desk (2026-09-30, this branch): Vitest 161/161 (22 files), pgTAP 78/78, format clean; `main @ e491a8f` CI green (run 36662871657), production deploy green · gate **OPEN**: brief written and all rulings given (decisions 11 and 12, D10, prank protection, diner timeline without Ready); **waiting for Ari's "go"** before any code.
+
+Session closed 2026-09-30 (Ari: "calling it a night").
 
 **PICK UP HERE** (run top to bottom):
-1. `git branch --show-current` → `phase-1/brief-04-order-board`. `git log --oneline main..HEAD` → the records commit, then any Brief 04 commits. `git status --short` → empty.
-2. `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → green. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (see `.env.example`).
-3. If Ari ruled Brief 03 accepted: add a status banner to `PM_REVIEW_brief-03.md` and mark Brief 03 `PM-ACCEPTED` above.
-4. Write `docs/phase-1/BRIEF-04-order-board.md` from the README outline plus: open decisions 11 and 12, the diner name sheet (PRD D2), password reset and the PWA manifest (decision 6), a Toast primitive, a real-phone scan-to-menu timing (decision 13), and a read-only check of hosted Auth settings before on-device tests.
-5. Show Ari the brief; build only after "go".
+1. `git fetch && git branch --show-current` → `phase-1/brief-04-order-board`. `git status --short` → empty. `git log --oneline main..HEAD` → docs commits only (Brief 03 records, PM-ACCEPTED, the Brief 04 draft, rulings on decisions 11 and 12, seat-tables and D10, the Ready ruling, this handoff).
+2. `colima status` (start it if needed), then `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → Vitest 161/161, pgTAP 78/78. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`.
+3. Ask Ari for "go" on `docs/phase-1/BRIEF-04-order-board.md` if he hasn't given it. Build nothing before it.
+4. After "go": build tasks 1 to 10 in order, one commit each, `npm run check && npm run format:check` before each. Task 2's migration and task 9's `place_order` change get pgTAP negatives and falsification; task 3 includes the diner timeline without Ready.
+5. Before the PR: `npm run build && CI=1 npx playwright test`, the long-service and latency probes, screenshots, spec-reconciliation agent, `PM_REVIEW_brief-04.md` with the Phase 1 exit checklist, then `gh pr create` and stop.
+6. Before any phone test on the hosted project: read-only `GET /auth/v1/settings` (anonymous sign-ins on). Any new public env var goes to Vercel Preview first, Production only with its merge.
+
+**Waiting on Ari (not blocking the build):** PRD edits (5.10's four browser variables; D1's entry screen; the table matrix without delete; Q3 now built in Brief 04; D6 and 5.7 without diner-facing Ready) · a real Cloudflare Turnstile widget before hosted CAPTCHA is turned on (swap Production's site key first) · custom SMTP on the hosted project before the pilot · optionally, delete branches `phase-1/brief-02-portal` and `phase-1/brief-03-diner`.
 
 ## 9. Gated / deferred items
 

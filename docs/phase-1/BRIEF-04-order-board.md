@@ -56,10 +56,11 @@ The tasks are ordered so the exit path comes first. Password reset and the PWA m
 - e2e fixtures seat tables through the RPC.
 - **Done when** an unseated table's code shows the not-seated copy, seating lets the same phone order, closing makes the next order attempt answer `session_closed`, and a rescan after closing shows not-seated again.
 
-### 3. Diner names (PRD D2)
+### 3. Diner names (PRD D2) and the diner timeline without Ready (ruled 2026-09-30)
 - A one-field bottom sheet over the menu the first time in a session: "What should we call you?" (up to 40 characters) with **Skip** equally prominent. Saves through `participants_self_update` via `src/lib/`.
 - Board label: the display name, or "Guest N", where N is the diner's position by `joined_at` in that session.
-- **Done when** a named diner's order shows the name on the board, and a skipped one shows "Guest 1".
+- **Diner timeline:** Sent → Accepted → Preparing → Served. An order in `ready` shows as Preparing (current step) until it's served; the "Ready. It's coming to your table." copy goes. The board keeps its Ready column. `src/lib/order-status.ts` and its tests change; the Brief 03 e2e expects Preparing after a staff "ready". No database change.
+- **Done when** a named diner's order shows the name on the board, a skipped one shows "Guest 1", and a staff "ready" leaves the diner on Preparing until "served".
 
 ### 4. Dashboard live counts (PRD P3)
 - Once live: open tables, orders waiting (submitted), and average ticket age today.
