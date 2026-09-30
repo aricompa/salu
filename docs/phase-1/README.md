@@ -9,7 +9,7 @@
 | 01 | [Foundation, staff auth, onboarding](BRIEF-01-foundation.md) | Tooling, local Supabase with hardened schema, auth for Next 16, tokens, CI, owner sign-up to dashboard | Merged 2026-09-29 (`c52c3e2`) |
 | 02 | [Portal: menu, tables and QR, settings](BRIEF-02-portal.md) | Menu categories and items CRUD with inline 86 toggle; tables with printable QR sheet (label, QR, "Scan to order"); rotate or deactivate QR; edit-window, add-on cutoff and timezone settings | Merged 2026-09-29 (`19159cb`) |
 | 03 | [Diner flow](BRIEF-03-diner.md) | `/t/[token]`: anonymous sign-in protected by Cloudflare Turnstile (see note below), `join_table`, menu (sticky category tabs, item sheet, sold-out state), cart, `place_order`, order status page with realtime updates; invalid, rotated and closed-table states | Merged 2026-09-30 (`e491a8f`) |
-| 04 | Live order board and Phase 1 exit | Realtime board by status with new-order alert and age timers; accept, preparing, ready, served, cancel; close table session; full e2e (scan, order, board, status on phone); real-device test on iPhone Safari | Outline |
+| 04 | [Live order board and Phase 1 exit](BRIEF-04-order-board.md) | Realtime board by status with new-order alert and age timers; accept, preparing, ready, served, cancel; close table session; full e2e (scan, order, board, status on phone); real-device test on iPhone Safari | Drafted, awaiting review |
 
 Briefs 02 to 04 get written in full after the previous PR merges, so each one reflects what actually shipped.
 

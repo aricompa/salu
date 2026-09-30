@@ -62,7 +62,7 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-04-order-board.md` (not written yet; outline in `docs/phase-1/README.md`). Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-04-order-board.md` (drafted 2026-09-30; awaiting Ari's review and the three rulings it requests). Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
