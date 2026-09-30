@@ -25,6 +25,9 @@ export type AppErrorCode =
   | "invalid_items"
   | "restaurant_limit"
   | "slug_taken"
+  | "label_taken"
+  | "category_not_empty"
+  | "not_found"
   | "not_allowed"
   | "invalid_input"
   | "invalid_credentials"
@@ -46,6 +49,9 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   invalid_items: "Something's off with your order. Check it and try again.",
   restaurant_limit: "You've reached the limit of restaurants for this account.",
   slug_taken: "That link is taken. Try another.",
+  label_taken: "You already have a table with that name.",
+  category_not_empty: "Move or delete its items first.",
+  not_found: "That's no longer here. Refresh to see the latest.",
   not_allowed: "You don't have access to do that.",
   invalid_input: "Check the highlighted fields and try again.",
   invalid_credentials: "Email or password is incorrect.",
@@ -69,11 +75,18 @@ const DB_HINTS = new Set<AppErrorCode>([
 
 type DbErrorLike = { code?: string | null; hint?: string | null; message?: string | null };
 
-export function toAppError(err: DbErrorLike | null | undefined): AppError {
+/**
+ * Maps a database error to friendly copy without leaking DB text. A unique violation
+ * means different things per form, so callers name it (default: the onboarding slug).
+ */
+export function toAppError(
+  err: DbErrorLike | null | undefined,
+  options: { unique?: AppErrorCode } = {},
+): AppError {
   const hint = err?.hint as AppErrorCode | undefined;
   let code: AppErrorCode = "unknown";
   if (hint && DB_HINTS.has(hint)) code = hint;
-  else if (err?.code === "23505") code = "slug_taken";
+  else if (err?.code === "23505") code = options.unique ?? "slug_taken";
   else if (err?.code === "42501") code = "not_allowed";
   return { code, message: ERROR_COPY[code] };
 }

@@ -25,6 +25,13 @@ describe("toAppError", () => {
     expect(toAppError({ code: "23505" }).message).toBe("That link is taken. Try another.");
   });
 
+  it("lets the caller name what a unique violation means", () => {
+    expect(toAppError({ code: "23505" }, { unique: "label_taken" })).toEqual({
+      code: "label_taken",
+      message: ERROR_COPY.label_taken,
+    });
+  });
+
   it("maps insufficient privilege to not_allowed", () => {
     expect(toAppError({ code: "42501", hint: null }).code).toBe("not_allowed");
   });
