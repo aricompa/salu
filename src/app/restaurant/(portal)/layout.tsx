@@ -1,7 +1,6 @@
 import { KitchenClock } from "@/components/portal/KitchenClock";
-import { OfflineBanner } from "@/components/portal/OfflineBanner";
 import { PortalNav } from "@/components/portal/PortalNav";
-import { Button } from "@/components/ui";
+import { Button, OfflineBanner } from "@/components/ui";
 import { requireMembership } from "@/lib/auth";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {

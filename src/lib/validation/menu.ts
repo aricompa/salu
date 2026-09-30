@@ -26,24 +26,10 @@ export function centsToPriceInput(cents: number): string {
   return `${whole}.${fraction}`;
 }
 
-/** Fixed vocabulary for dietary tags. `short` is the chip text diners see. */
-export const DIETARY_TAGS = [
-  { value: "vegetarian", short: "V", label: "Vegetarian" },
-  { value: "vegan", short: "VG", label: "Vegan" },
-  { value: "gluten-free", short: "GF", label: "Gluten-free" },
-  { value: "dairy-free", short: "DF", label: "Dairy-free" },
-  { value: "contains-nuts", short: "Nuts", label: "Contains nuts" },
-  { value: "spicy", short: "Spicy", label: "Spicy" },
-] as const;
-
-export type DietaryTag = (typeof DIETARY_TAGS)[number]["value"];
+export { DIETARY_TAGS, dietaryShort, type DietaryTag } from "@/lib/dietary";
+import { DIETARY_TAGS, type DietaryTag } from "@/lib/dietary";
 
 const TAG_VALUES = DIETARY_TAGS.map((t) => t.value) as [DietaryTag, ...DietaryTag[]];
-
-/** Short chip text for a stored tag; unknown tags are shown as stored. */
-export function dietaryShort(tag: string): string {
-  return DIETARY_TAGS.find((t) => t.value === tag)?.short ?? tag;
-}
 
 export const categoryNameSchema = z
   .string()

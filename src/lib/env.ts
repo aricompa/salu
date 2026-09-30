@@ -8,6 +8,7 @@ export const PUBLIC_ENV_NAMES = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "NEXT_PUBLIC_SITE_URL",
+  "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
 ] as const;
 
 const publicEnvSchema = z.object({
@@ -17,6 +18,12 @@ const publicEnvSchema = z.object({
     .min(1)
     .refine((v) => !v.startsWith("sb_secret_"), "a secret key must never be public"),
   NEXT_PUBLIC_SITE_URL: z.url(),
+  // Turnstile site keys are 24 characters; secrets are longer. Refusing long values stops
+  // the secret, which belongs only in Supabase Auth config, from shipping to browsers.
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z
+    .string()
+    .min(1)
+    .max(30, "looks like a Turnstile secret; only the site key may be public"),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
@@ -56,6 +63,7 @@ export function publicEnv(): PublicEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
   });
   return cached;
 }

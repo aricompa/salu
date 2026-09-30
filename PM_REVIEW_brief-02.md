@@ -1,5 +1,7 @@
 # PM review: Brief 02 (portal: menu, tables and QR, settings)
 
+> **Status: PM-ACCEPTED 2026-09-29 ("PR good to go"), MERGED @ 19159cb.** Open decisions 8, 9 and 10 and builder calls (a) to (m) ruled the same day (see `CLAUDE.md` section 1). The printed-card phone scan in section 5 was not reported.
+
 **Tracked:** yes, committed on the branch with PR #3. When Ari rules, add a status banner under this title; don't edit the body.
 
 ## 1. Header

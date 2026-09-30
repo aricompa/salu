@@ -17,3 +17,6 @@ export function safeNextPath(next: string | null | undefined, fallback: string):
   }
   return next;
 }
+
+/** A Turnstile token as posted by a form. Opaque to us; Supabase Auth verifies it. */
+export const captchaTokenSchema = z.string().min(1).max(4096);

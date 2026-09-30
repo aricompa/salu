@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KitchenClock, formatKitchenTime } from "./KitchenClock";
-import { OfflineBanner } from "./OfflineBanner";
+import { OfflineBanner } from "@/components/ui";
 
 describe("KitchenClock", () => {
   it("shows the time in the restaurant's zone", () => {

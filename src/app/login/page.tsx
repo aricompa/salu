@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { publicEnv } from "@/lib/env";
 import { isSignedInStaff } from "@/lib/staff-auth";
 import { LoginForm } from "./LoginForm";
 
@@ -23,7 +24,10 @@ export default async function LoginPage({
         <h1 className="text-3xl font-semibold">Salu for restaurants</h1>
         <p className="text-muted">Sign in to run your menu, tables and orders.</p>
       </div>
-      <LoginForm notice={error ? NOTICES[error] : undefined} />
+      <LoginForm
+        notice={error ? NOTICES[error] : undefined}
+        turnstileSiteKey={publicEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      />
     </main>
   );
 }

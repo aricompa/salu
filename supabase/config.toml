@@ -214,10 +214,14 @@ token_verifications = 30
 web3 = 30
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
-# [auth.captcha]
-# enabled = true
-# provider = "hcaptcha"
-# secret = ""
+# Turnstile (open decision 7, invariant 6). Local and CI use Cloudflare's documented
+# always-pass TEST secret (developers.cloudflare.com/turnstile/troubleshooting/testing/);
+# it only accepts the dummy token XXXX.DUMMY.TOKEN.XXXX. The real secret lives only in
+# the hosted project's Auth settings, and Ari enables CAPTCHA there after deploy.
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "1x0000000000000000000000000000000AA"
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.

@@ -1,15 +1,42 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Card, Input, Turnstile } from "@/components/ui";
 import { signInAction, signUpAction, type SignInResult, type SignUpResult } from "./actions";
 
 type Mode = "sign-in" | "sign-up";
 
-export function LoginForm({ notice }: { notice?: string }) {
+export function LoginForm({
+  notice,
+  turnstileSiteKey,
+}: {
+  notice?: string;
+  turnstileSiteKey: string;
+}) {
   const [mode, setMode] = useState<Mode>("sign-in");
-  const [signInState, signIn, signingIn] = useActionState(signInAction, null as SignInResult);
-  const [signUpState, signUp, signingUp] = useActionState(signUpAction, null as SignUpResult);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Turnstile tokens are single-use: every answer from the server gets a fresh widget.
+  const [attempt, setAttempt] = useState(0);
+  const spendToken = () => {
+    setCaptchaToken(null);
+    setAttempt((n) => n + 1);
+  };
+  const [signInState, signIn, signingIn] = useActionState(
+    async (prev: SignInResult, formData: FormData) => {
+      const result = await signInAction(prev, formData);
+      spendToken();
+      return result;
+    },
+    null as SignInResult,
+  );
+  const [signUpState, signUp, signingUp] = useActionState(
+    async (prev: SignUpResult, formData: FormData) => {
+      const result = await signUpAction(prev, formData);
+      spendToken();
+      return result;
+    },
+    null as SignUpResult,
+  );
 
   if (mode === "sign-up" && signUpState?.ok) {
     return (
@@ -39,7 +66,10 @@ export function LoginForm({ notice }: { notice?: string }) {
             role="tab"
             aria-selected={mode === m}
             variant={mode === m ? "secondary" : "ghost"}
-            onClick={() => setMode(m)}
+            onClick={() => {
+              setMode(m);
+              setCaptchaToken(null);
+            }}
           >
             {m === "sign-in" ? "Sign in" : "Create account"}
           </Button>
@@ -77,14 +107,31 @@ export function LoginForm({ notice }: { notice?: string }) {
           hint={mode === "sign-up" ? "At least 10 characters." : undefined}
           error={failure?.fieldErrors?.password}
         />
+        <input type="hidden" name="captchaToken" value={captchaToken ?? ""} />
+        <Turnstile
+          key={`${mode}-${attempt}`}
+          siteKey={turnstileSiteKey}
+          action={mode}
+          onToken={setCaptchaToken}
+        />
         {formError && (
           <p role="alert" className="text-danger">
             {formError}
           </p>
         )}
-        <Button type="submit" loading={pending}>
+        <Button
+          type="submit"
+          loading={pending}
+          disabled={!captchaToken}
+          aria-describedby={captchaToken ? undefined : "captcha-wait"}
+        >
           {mode === "sign-in" ? "Sign in" : "Create account"}
         </Button>
+        {!captchaToken && (
+          <p id="captcha-wait" className="text-sm text-muted">
+            Checking this device…
+          </p>
+        )}
       </form>
     </div>
   );

@@ -25,7 +25,12 @@ export async function updateProfileAction(
     return { ...fail("invalid_input"), values, fieldErrors: fieldErrorsOf(parsed.error) };
 
   const result = await updateRestaurantProfile(access.membership.restaurantId, parsed.data);
-  if (!result.ok) return { ok: false, error: result.error, values };
+  if (!result.ok) {
+    // Postgres and this runtime can disagree on zone names; the database has the last word.
+    const fieldErrors =
+      result.error.code === "invalid_timezone" ? { timezone: result.error.message } : undefined;
+    return { ok: false, error: result.error, values, fieldErrors };
+  }
   // The header shows the name and the kitchen clock, so refresh the whole portal.
   revalidatePath("/restaurant", "layout");
   return { ok: true, data: null };

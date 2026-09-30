@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ActionButton, Badge, Button, Card, ConfirmDialog, buttonStyles } from "@/components/ui";
 import type { MenuCategory, MenuItem } from "@/lib/menu";
 import { formatCents } from "@/lib/money";
-import { DIETARY_TAGS } from "@/lib/validation/menu";
+import { DIETARY_TAGS } from "@/lib/dietary";
 import {
   deleteCategoryAction,
   deleteItemAction,

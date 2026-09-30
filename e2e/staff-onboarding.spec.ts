@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
+  PUBLISHABLE_KEY,
+  SUPABASE_URL,
   anonymousSessionCookies,
   confirmationLink,
   createConfirmedStaff,
@@ -82,4 +84,25 @@ test("an anonymous diner session cannot open the staff portal", async ({ browser
   await dinerPage.goto("/restaurant/onboarding");
   await expect(dinerPage).toHaveURL(/\/login$/);
   await dinerContext.close();
+});
+
+test("with CAPTCHA on, Auth refuses sign-ins that carry no Turnstile token", async () => {
+  // Flips if CAPTCHA is ever switched off (open decision 7; invariant 6's conditions).
+  const post = (path: string, body: unknown) =>
+    fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  for (const [path, body] of [
+    [
+      "token?grant_type=password",
+      { email: "nobody@example.com", password: "correct-horse-battery" },
+    ],
+    ["signup", {}],
+  ] as const) {
+    const res = await post(path, body);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error_code: string }).error_code).toBe("captcha_failed");
+  }
 });

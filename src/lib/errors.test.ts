@@ -11,6 +11,7 @@ const DB_HINTS: AppErrorCode[] = [
   "not_participant",
   "invalid_items",
   "restaurant_limit",
+  "invalid_timezone",
 ];
 
 describe("toAppError", () => {

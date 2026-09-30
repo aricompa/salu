@@ -24,6 +24,7 @@ export type AppErrorCode =
   | "not_participant"
   | "invalid_items"
   | "restaurant_limit"
+  | "invalid_timezone"
   | "slug_taken"
   | "label_taken"
   | "category_not_empty"
@@ -34,6 +35,7 @@ export type AppErrorCode =
   | "email_not_confirmed"
   | "weak_password"
   | "too_many_attempts"
+  | "captcha_failed"
   | "unknown";
 
 export type AppError = { code: AppErrorCode; message: string };
@@ -48,6 +50,7 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   not_participant: "Scan the code on your table to order.",
   invalid_items: "Something's off with your order. Check it and try again.",
   restaurant_limit: "You've reached the limit of restaurants for this account.",
+  invalid_timezone: "That time zone isn't recognised. Pick another from the list.",
   slug_taken: "That link is taken. Try another.",
   label_taken: "You already have a table with that name.",
   category_not_empty: "Move or delete its items first.",
@@ -58,6 +61,7 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   email_not_confirmed: "Confirm your email first. Check your inbox for the link.",
   weak_password: "Choose a stronger password.",
   too_many_attempts: "Too many attempts. Wait a minute, then try again.",
+  captcha_failed: "We couldn't check this device. Try again.",
   unknown: "Something went wrong. Try again in a moment.",
 };
 
@@ -71,6 +75,7 @@ const DB_HINTS = new Set<AppErrorCode>([
   "not_participant",
   "invalid_items",
   "restaurant_limit",
+  "invalid_timezone",
 ]);
 
 type DbErrorLike = { code?: string | null; hint?: string | null; message?: string | null };

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { fail, type FormResult } from "@/lib/errors";
 import { signInStaff, signUpStaff } from "@/lib/staff-auth";
-import { credentialsSchema } from "@/lib/validation/auth";
+import { captchaTokenSchema, credentialsSchema } from "@/lib/validation/auth";
 
 type Field = "email" | "password";
 export type SignInResult = FormResult<never, Field>;
@@ -14,17 +14,21 @@ export async function signInAction(_prev: SignInResult, formData: FormData): Pro
   const parsed = credentialsSchema.safeParse({ email, password: formData.get("password") });
   // Don't reveal password rules on sign-in: any invalid input reads as bad credentials.
   if (!parsed.success) return { ...fail("invalid_credentials"), values: { email } };
+  const captcha = captchaTokenSchema.safeParse(formData.get("captchaToken"));
+  if (!captcha.success) return { ...fail("captcha_failed"), values: { email } };
 
-  const outcome = await signInStaff(parsed.data);
+  const outcome = await signInStaff(parsed.data, captcha.data);
   if (outcome === "ok") redirect("/restaurant/dashboard");
   const code =
-    outcome === "email_not_confirmed"
-      ? "email_not_confirmed"
-      : outcome === "rate_limited"
-        ? "too_many_attempts"
-        : outcome === "invalid_credentials"
-          ? "invalid_credentials"
-          : "unknown";
+    outcome === "captcha_failed"
+      ? "captcha_failed"
+      : outcome === "email_not_confirmed"
+        ? "email_not_confirmed"
+        : outcome === "rate_limited"
+          ? "too_many_attempts"
+          : outcome === "invalid_credentials"
+            ? "invalid_credentials"
+            : "unknown";
   return { ...fail(code), values: { email } };
 }
 
@@ -40,8 +44,13 @@ export async function signUpAction(_prev: SignUpResult, formData: FormData): Pro
     };
   }
 
-  const outcome = await signUpStaff(parsed.data);
+  const captcha = captchaTokenSchema.safeParse(formData.get("captchaToken"));
+  if (!captcha.success) return { ...fail("captcha_failed"), values: { email } };
+
+  const outcome = await signUpStaff(parsed.data, captcha.data);
   switch (outcome) {
+    case "captcha_failed":
+      return { ...fail("captcha_failed"), values: { email } };
     case "check_email":
       return { ok: true, data: { sentTo: parsed.data.email } };
     case "weak_password": {

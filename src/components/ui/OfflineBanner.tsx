@@ -11,17 +11,24 @@ function subscribe(onChange: () => void) {
   };
 }
 
-/** Tells staff when the tablet has lost its connection (rule U6). Server render assumes online. */
-export function OfflineBanner() {
-  const online = useSyncExternalStore(
+const DEFAULT_MESSAGE = "You're offline. Changes won't save until the connection is back.";
+
+/** Whether the device reports a connection. Server render assumes online. */
+export function useOnline(): boolean {
+  return useSyncExternalStore(
     subscribe,
     () => navigator.onLine,
     () => true,
   );
+}
+
+/** Says when the device has lost its connection (rule U6). */
+export function OfflineBanner({ message = DEFAULT_MESSAGE }: { message?: string }) {
+  const online = useOnline();
   if (online) return null;
   return (
     <p role="status" className="border-b border-warning px-6 py-3 text-warning print:hidden">
-      You&apos;re offline. Changes won&apos;t save until the connection is back.
+      {message}
     </p>
   );
 }

@@ -61,6 +61,8 @@ jobs:
             | sed -n -e 's/^API_URL=/NEXT_PUBLIC_SUPABASE_URL=/p' -e 's/^PUBLISHABLE_KEY=/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=/p' \
             > .env.local
           echo 'NEXT_PUBLIC_SITE_URL="http://localhost:3000"' >> .env.local
+          # Cloudflare's always-pass test site key (config.toml holds the matching test secret)
+          echo 'NEXT_PUBLIC_TURNSTILE_SITE_KEY="1x00000000000000000000AA"' >> .env.local
 
       - name: Build
         run: npm run build
