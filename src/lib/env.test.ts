@@ -5,6 +5,7 @@ const valid = {
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_abc",
   NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
 };
 
 describe("parsePublicEnv", () => {
@@ -36,6 +37,18 @@ describe("assertSafePublicEnvNames", () => {
     expect(() =>
       assertSafePublicEnvNames({ ...valid, SUPABASE_SECRET_KEY: "x", PATH: "/bin" }),
     ).not.toThrow();
+  });
+
+  it("requires the Turnstile site key and refuses a Turnstile secret in its place", () => {
+    expect(() => parsePublicEnv({ ...valid, NEXT_PUBLIC_TURNSTILE_SITE_KEY: undefined })).toThrow(
+      /NEXT_PUBLIC_TURNSTILE_SITE_KEY/,
+    );
+    expect(() =>
+      parsePublicEnv({
+        ...valid,
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x0000000000000000000000000000000AA",
+      }),
+    ).toThrow(/Turnstile secret/);
   });
 
   it("rejects a secret-looking NEXT_PUBLIC_ name", () => {

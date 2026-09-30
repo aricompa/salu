@@ -42,11 +42,14 @@ function sessionCookies(session: unknown): Array<{ name: string; value: string }
   return chunks;
 }
 
-async function authPost(path: string, body: unknown) {
+/** Cloudflare's dummy token; local and CI Auth use the matching always-pass test secret. */
+export const TEST_CAPTCHA_TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
+
+async function authPost(path: string, body: Record<string, unknown>) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
     method: "POST",
     headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, gotrue_meta_security: { captcha_token: TEST_CAPTCHA_TOKEN } }),
   });
   if (!res.ok) throw new Error(`auth ${path} failed: ${res.status} ${await res.text()}`);
   return res.json();

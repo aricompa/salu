@@ -9,3 +9,4 @@ export { Input, type InputProps } from "./Input";
 export { Select, type SelectProps } from "./Select";
 export { Skeleton } from "./Skeleton";
 export { Textarea, type TextareaProps } from "./Textarea";
+export { Turnstile } from "./Turnstile";

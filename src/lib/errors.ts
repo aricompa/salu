@@ -35,6 +35,7 @@ export type AppErrorCode =
   | "email_not_confirmed"
   | "weak_password"
   | "too_many_attempts"
+  | "captcha_failed"
   | "unknown";
 
 export type AppError = { code: AppErrorCode; message: string };
@@ -60,6 +61,7 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   email_not_confirmed: "Confirm your email first. Check your inbox for the link.",
   weak_password: "Choose a stronger password.",
   too_many_attempts: "Too many attempts. Wait a minute, then try again.",
+  captcha_failed: "We couldn't check this device. Try again.",
   unknown: "Something went wrong. Try again in a moment.",
 };
 
