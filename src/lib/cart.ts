@@ -92,3 +92,14 @@ export function saveCart(
     // Keep going with the in-memory cart.
   }
 }
+
+/** PRD 5.7: "Sorry, Lobster Roll just sold out. We took it off your order." */
+export function soldOutMessage(names: string[]): string {
+  const unique = [...new Set(names)];
+  if (unique.length === 0) return "Sorry, something in your order just sold out. We took it off.";
+  const list =
+    unique.length === 1
+      ? unique[0]
+      : `${unique.slice(0, -1).join(", ")} and ${unique[unique.length - 1]}`;
+  return `Sorry, ${list} just sold out. We took ${unique.length === 1 ? "it" : "them"} off your order.`;
+}

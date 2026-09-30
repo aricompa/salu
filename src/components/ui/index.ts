@@ -6,7 +6,7 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export { cn } from "./cn";
 export { EmptyState } from "./EmptyState";
 export { Input, type InputProps } from "./Input";
-export { OfflineBanner } from "./OfflineBanner";
+export { OfflineBanner, useOnline } from "./OfflineBanner";
 export { Select, type SelectProps } from "./Select";
 export { Sheet } from "./Sheet";
 export { Skeleton } from "./Skeleton";

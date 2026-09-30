@@ -29,3 +29,19 @@ export function decodeDinerCookie(raw: string | undefined): DinerTable | null {
     return null;
   }
 }
+
+export const orderSchema = z.object({
+  lines: z
+    .array(
+      z.object({
+        itemId: z.uuid(),
+        quantity: z.number().int().min(1).max(50),
+        notes: z.string().trim().max(200),
+      }),
+    )
+    .min(1)
+    .max(30),
+  notes: z.string().trim().max(500),
+});
+
+export type OrderInput = z.infer<typeof orderSchema>;

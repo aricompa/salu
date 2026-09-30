@@ -78,3 +78,76 @@ test("the menu shows active sections only, sold-out items can't be added, the sh
   await page.reload();
   await expect(page.getByRole("link", { name: /2 items · \$48\.00/ })).toBeVisible();
 });
+
+async function scanAndAdd(page: import("@playwright/test").Page, label: string, items: string[]) {
+  const { token } = fx.tables[label];
+  await page.goto(`/t/${token}`);
+  await expect(page).toHaveURL(/\/menu$/, { timeout: 20_000 });
+  for (const name of items) {
+    await page.getByRole("button", { name: new RegExp(name) }).click();
+    await page
+      .getByRole("dialog", { name })
+      .getByRole("button", { name: /^Add ·/ })
+      .click();
+    await expect(page.getByRole("dialog", { name })).toBeHidden();
+  }
+  await page.getByRole("link", { name: /View order/ }).click();
+  await expect(page.getByRole("heading", { name: "Your order" })).toBeVisible();
+  return token;
+}
+
+test("placing an order: the database prices it, and a sold-out item is named and removed", async ({
+  page,
+}) => {
+  await scanAndAdd(page, "C2", ["Burrata", "Grilled Salmon"]);
+  await page.getByRole("button", { name: "Add one Grilled Salmon" }).click();
+  await expect(page.getByText("$62.00")).toBeVisible(); // 14 + 2 x 24, display only
+
+  // The kitchen 86s the burrata while it sits in the cart.
+  await rest(fx.ownerJwt, `menu_items?id=eq.${fx.items.Burrata}`, {
+    method: "PATCH",
+    body: { is_available: false },
+  });
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Sorry, Burrata just sold out." }),
+  ).toHaveText("Sorry, Burrata just sold out. We took it off your order.");
+  await expect(page.getByRole("listitem").filter({ hasText: "Burrata" })).toHaveCount(0);
+  await rest(fx.ownerJwt, `menu_items?id=eq.${fx.items.Burrata}`, {
+    method: "PATCH",
+    body: { is_available: true },
+  });
+
+  await page.getByLabel("Notes for your order").fill("Celebrating a birthday");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+  const orderId = page.url().split("/").pop();
+  const [order] = await rest<Array<{ subtotal_cents: number; notes: string; status: string }>>(
+    fx.ownerJwt,
+    `orders?id=eq.${orderId}&select=subtotal_cents,notes,status`,
+  );
+  expect(order).toEqual({
+    subtotal_cents: 4800,
+    notes: "Celebrating a birthday",
+    status: "submitted",
+  });
+});
+
+test("a table closed by staff says so instead of opening a new tab", async ({ page }) => {
+  await scanAndAdd(page, "A1", ["Tuna Crudo"]);
+  const [open] = await rest<Array<{ id: string }>>(
+    fx.ownerJwt,
+    `table_sessions?table_id=eq.${fx.tables.A1.id}&status=eq.open&select=id`,
+  );
+  await rest(fx.ownerJwt, "rpc/close_table_session", {
+    method: "POST",
+    body: { p_session_id: open.id },
+  });
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "This table was closed." })).toContainText(
+    "This table was closed. Scan the code again to start a new tab.",
+  );
+  await page.getByRole("link", { name: "Start a new tab" }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole("link", { name: /View order/ })).toHaveCount(0);
+});

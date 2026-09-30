@@ -8,6 +8,7 @@ import {
   removeLine,
   saveCart,
   setQuantity,
+  soldOutMessage,
   type CartLine,
 } from "./cart";
 
@@ -70,5 +71,20 @@ describe("cart storage", () => {
       salmon,
     ]);
     expect(loadCart(undefined, "k")).toEqual([]);
+  });
+});
+
+describe("soldOutMessage", () => {
+  it("names what sold out, in PRD 5.7's words", () => {
+    expect(soldOutMessage(["Lobster Roll"])).toBe(
+      "Sorry, Lobster Roll just sold out. We took it off your order.",
+    );
+    expect(soldOutMessage(["Lobster Roll", "Burrata", "Lobster Roll"])).toBe(
+      "Sorry, Lobster Roll and Burrata just sold out. We took them off your order.",
+    );
+    expect(soldOutMessage(["A", "B", "C"])).toBe(
+      "Sorry, A, B and C just sold out. We took them off your order.",
+    );
+    expect(soldOutMessage([])).toContain("something in your order");
   });
 });
