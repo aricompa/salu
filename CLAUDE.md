@@ -214,13 +214,14 @@ Current state only. History is in section 1.
 
 **Stream: Brief 02** — `MERGED @ 19159cb` (PR #3, 2026-09-30 UTC), `PM-ACCEPTED` 2026-09-29 ("PR good to go"). The phone scan of a printed card was not reported. Branch `phase-1/brief-02-portal` can be deleted.
 
-**Stream: Brief 03** — `phase-1/brief-03-diner`, cut from `main @ 19159cb` · worktree `/Users/ari/salu` · gate **OPEN**: Ari said "agree, proceed" on 2026-09-29; writing the brief, then building through to the PR.
+**Stream: Brief 03** — `phase-1/brief-03-diner`, cut from `main @ 19159cb`, PR #4 (https://github.com/aricompa/salu/pull/4) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29, fresh `db:reset`): Vitest 161/161 (22 files), pgTAP 78/78, Playwright 13/13 on the production build, `supabase db lint` clean, types no drift, gitleaks history clean, first-load JS 141 to 147 KB · CI: see PR #4 checks (pickup step 1 verifies) · gate **DESK-GREEN**; PM acceptance pending · review file `PM_REVIEW_brief-03.md` · next: Ari sets the Vercel site key, reviews PR #4, and rules on builder calls (n) to (u) and open decision 13.
 
 **PICK UP HERE** (run top to bottom):
-1. `git branch --show-current` → `phase-1/brief-03-diner`. `git log --oneline main..HEAD` → docs commits, then one commit per finished task. `git status --short` → empty between tasks.
-2. `npm run db:start && npm run db:reset && npm run check && npm run format:check` → all passing. Report failures as failures.
-3. Continue at the first task in `docs/phase-1/BRIEF-03-diner.md` without a commit. Commit per task with trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-4. Before the PR: `npm run build && CI=1 npx playwright test`, spec-reconciliation agent, screenshots at 390×844, `PM_REVIEW_brief-03.md`, then `gh pr create` and stop.
+1. `git fetch && gh pr view 4 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log. A preview that crashed at boot most likely lacks `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in Vercel.
+2. If PR #4 is open: stop. Brief 04 does not start (section 2). Answer review comments on the branch only.
+3. If merged: `git checkout main && git pull`, record `MERGED @ <sha>` for Brief 03 here, add a status banner to `PM_REVIEW_brief-03.md`, and point "Active brief" at Brief 04.
+4. Write `docs/phase-1/BRIEF-04-order-board.md` from the README outline plus: open decisions 11 and 12, the diner name sheet (PRD D2), password reset and the PWA manifest (decision 6), a Toast primitive, and a real-phone measurement of scan to menu (decision 13).
+5. `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → green before any Brief 04 code. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (see `.env.example`).
 
 ## 9. Gated / deferred items
 
