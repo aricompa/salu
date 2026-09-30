@@ -196,9 +196,9 @@ Current state only. History is in section 1.
 
 **Stream: Brief 01** — `MERGED @ c52c3e2` (PR #2, 2026-09-29). Branch `phase-1/brief-01-foundation` can be deleted after Brief 02 merges. Gate `PM-ACCEPTED` is implied by Ari's merge; the acceptance run on the Vercel preview was not separately recorded.
 
-**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2`, PR #3 (https://github.com/aricompa/salu/pull/3) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29): lint, typecheck, format, Vitest 128/128 (17 files), pgTAP 68/68, `supabase db lint` clean, types no drift, production build (all `/restaurant/*` dynamic), Playwright 5/5 on the production build · gate **DESK-GREEN**; CI on the PR head not yet recorded here; PM acceptance pending · next: Ari reviews PR #3 and rules on open decisions 8, 9, 10 and builder calls (a) to (m).
+**Stream: Brief 02** — `phase-1/brief-02-portal`, cut from `main @ c52c3e2`, PR #3 (https://github.com/aricompa/salu/pull/3) · worktree `/Users/ari/salu` · committed and pushed; nothing uncommitted · desk (2026-09-29): lint, typecheck, format, Vitest 134/134 (18 files), pgTAP 68/68, `supabase db lint` clean, types no drift, production build (all `/restaurant/*` dynamic), Playwright 5/5 on the production build · gate **DESK-GREEN**; CI: see PR #3 checks (pickup step 1 verifies); PM acceptance pending; review file `PM_REVIEW_brief-02.md` · next: Ari reviews PR #3 and rules on open decisions 8, 9, 10 and builder calls (a) to (m).
 
-All seven Brief 02 tasks are built. Commits: `519268c` brief docs, `aee93a8` task 1, `4f3695c` tasks 2 and 3, `fb7b2bb` tasks 4 and 5, `750a23e` task 6, `61ff087` task 7 tests and screenshots, `2a908a1` audit fixes, then this handoff commit.
+All seven Brief 02 tasks are built. Commits: `519268c` brief docs, `aee93a8` task 1, `4f3695c` tasks 2 and 3, `fb7b2bb` tasks 4 and 5, `750a23e` task 6, `61ff087` task 7 tests and screenshots, `2a908a1` audit fixes, `272ffff` handoff, then the PM review file and the row-count guard test.
 
 **PICK UP HERE** (run top to bottom):
 1. `git fetch && gh pr view 3 --json state,mergedAt,mergeCommit,statusCheckRollup` → note state and CI conclusion. A failing check is reported as failing, with its log.
@@ -226,8 +226,8 @@ A clean desk suite never reads as validated.
 
 | Surface | Desk-only | Validated (hosted preview) | On-device |
 |---|---|---|---|
-| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 falsification probes (2 in PR #2, 5 in PR #3) | not run against the hosted project by Claude Code (rule 10) | n/a |
-| lib, validation, UI primitives, portal components | Vitest 128/128, 17 files (2026-09-29) | n/a | n/a |
+| Schema, RLS, RPC grants | pgTAP 68/68: 43 security + 25 portal (2026-09-29); 7 pgTAP falsification probes (2 in PR #2, 5 in PR #3); PR #3 also probed `server-only`, the seed drift guard and the row-count guard | not run against the hosted project by Claude Code (rule 10) | n/a |
+| lib, validation, UI primitives, portal components | Vitest 134/134, 18 files (2026-09-29) | n/a | n/a |
 | Staff sign-up → confirm → onboarding → dashboard | Playwright 2/2, Chromium, local production build (2026-09-29) and CI | Vercel preview builds; Ari's acceptance run: **unverified** | none |
 | Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables on Letter and A4, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
 | Portal as floor staff | render tests + pgTAP only | none | none |
