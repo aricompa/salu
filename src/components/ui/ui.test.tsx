@@ -11,6 +11,7 @@ import {
   Input,
   Select,
   Skeleton,
+  Stepper,
   Textarea,
 } from ".";
 
@@ -162,5 +163,20 @@ describe("ConfirmDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Rotate", hidden: true }));
     expect(action).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Stepper", () => {
+  it("is a labelled group that stays within its bounds", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <Stepper label="Quantity" context="Salmon" value={1} max={2} onChange={onChange} />,
+    );
+    expect(screen.getByRole("group", { name: "Quantity Salmon" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove one Salmon" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Add one Salmon" }));
+    expect(onChange).toHaveBeenLastCalledWith(2);
+    rerender(<Stepper label="Quantity" context="Salmon" value={2} max={2} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "Add one Salmon" })).toBeDisabled();
   });
 });

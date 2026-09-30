@@ -102,3 +102,15 @@
 @page {
   margin: 12mm;
 }
+
+/* Bottom sheet entrance (skipped under prefers-reduced-motion, see Sheet.tsx). */
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

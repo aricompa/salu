@@ -50,3 +50,31 @@ test("opening an inner page without scanning asks for a scan", async ({ page }) 
   await page.goto(`/t/${fx.tables.A1.token}/menu`);
   await expect(page.getByRole("heading", { name: "Scan the code on your table" })).toBeVisible();
 });
+
+test("the menu shows active sections only, sold-out items can't be added, the sheet adds to the cart", async ({
+  page,
+}) => {
+  const { token } = fx.tables.C1;
+  await page.goto(`/t/${token}`);
+  await expect(page).toHaveURL(new RegExp(`/menu$`), { timeout: 20_000 });
+
+  await expect(
+    page.getByRole("navigation", { name: "Menu sections" }).getByRole("link"),
+  ).toHaveText(["Starters", "Mains"]);
+  await expect(page.getByText("Secret Burger")).toHaveCount(0);
+  await expect(page.getByText("Sold out", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Lobster Roll/ })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Grilled Salmon/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Grilled Salmon" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: "Add one Grilled Salmon" }).click();
+  await sheet.getByLabel("Notes for the kitchen").fill("No capers");
+  await sheet.getByRole("button", { name: "Add · $48.00" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("link", { name: /2 items · \$48\.00/ })).toBeVisible();
+
+  // The cart survives a reload (sessionStorage, per table session).
+  await page.reload();
+  await expect(page.getByRole("link", { name: /2 items · \$48\.00/ })).toBeVisible();
+});
