@@ -74,15 +74,15 @@ export default async function DashboardPage() {
             <LiveRefresh restaurantId={membership.restaurantId} />
           </div>
           <dl className="grid gap-3 sm:grid-cols-3">
-            <Card className="flex flex-col-reverse gap-1">
+            <Card className="flex flex-col gap-1">
               <dt className="text-muted">Open tables</dt>
-              <dd className="text-4xl font-semibold">{live.openTables}</dd>
+              <dd className="order-first text-4xl font-semibold">{live.openTables}</dd>
             </Card>
-            <Card className="flex flex-col-reverse gap-1">
+            <Card className="flex flex-col gap-1">
               <dt className="text-muted">Orders waiting</dt>
-              <dd className="text-4xl font-semibold">{live.ordersWaiting}</dd>
+              <dd className="order-first text-4xl font-semibold">{live.ordersWaiting}</dd>
             </Card>
-            <Card className="flex flex-col-reverse gap-1">
+            <Card className="flex flex-col gap-1">
               <dt className="text-muted">
                 Average time to serve
                 <span className="block text-sm">
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
                     : "Sent to served, today"}
                 </span>
               </dt>
-              <dd className="text-4xl font-semibold">
+              <dd className="order-first text-4xl font-semibold">
                 {live.averageServeMinutes === null ? "None yet" : `${live.averageServeMinutes} min`}
               </dd>
             </Card>
