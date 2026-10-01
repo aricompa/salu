@@ -233,17 +233,14 @@ Current state only. History is in section 1.
 
 **Stream: Brief 03** — `MERGED @ e491a8f` (PR #4, 2026-09-30 UTC); CI on `main` green (run 36662871657); production deploy green. Acceptance run on a real phone passed for scan, order and live status (2026-09-30); the rotated-code check was not reported. Gate: `PM-ACCEPTED` 2026-09-30. Branch `phase-1/brief-03-diner` can be deleted.
 
-**Stream: Brief 04** — `phase-1/brief-04-order-board @ <see git log -1>`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` (only worktree) · committed and pushed; nothing uncommitted; docs-only commits since `main` (acceptance records, the brief, rulings) · desk (2026-09-30, this branch): Vitest 161/161 (22 files), pgTAP 78/78, format clean; `main @ e491a8f` CI green (run 36662871657), production deploy green · gate **OPEN**: go given 2026-09-30; tasks 1 to 6 committed (orders board; seat and close tables; diner names and the timeline without Ready; dashboard live counts; two-browser e2e and probes; Toast); task 7 (staff auth in the browser, password reset) next.
-
-Session closed 2026-09-30 (Ari: "calling it a night").
+**Stream: Brief 04** — `phase-1/brief-04-order-board @ <see git log -1>`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` (only worktree) · tasks 1 to 6 committed and pushed (last task commit `886ff51`); task 7 in progress · desk (2026-09-30, at `886ff51`): Vitest 197/197 (30 files), pgTAP 98/98 (4 files), Playwright 21 passed + 2 probe specs skipped (CI mode on a production build, at `e9d6720`), format clean · gate **OPEN**: go given 2026-09-30; tasks 1 to 6 committed (orders board; seat and close tables; diner names and the timeline without Ready; dashboard live counts; two-browser e2e and probes; Toast); task 7 (staff auth in the browser, password reset) next.
 
 **PICK UP HERE** (run top to bottom):
-1. `git fetch && git branch --show-current` → `phase-1/brief-04-order-board`. `git status --short` → empty. `git log --oneline main..HEAD` → docs commits only (Brief 03 records, PM-ACCEPTED, the Brief 04 draft, rulings on decisions 11 and 12, seat-tables and D10, the Ready ruling, this handoff).
-2. `colima status` (start it if needed), then `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → Vitest 161/161, pgTAP 78/78. `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`.
-3. If Ari hasn't said "go" on `docs/phase-1/BRIEF-04-order-board.md`, ask for it. Build nothing before it.
-4. After "go": build tasks 1 to 10 in order, one commit each, `npm run check && npm run format:check` before each. Task 2's migration and task 9's `place_order` change get pgTAP negatives and falsification; task 3 includes the diner timeline without Ready.
-5. Before the PR: `npm run build && CI=1 npx playwright test`, the long-service and latency probes, screenshots, spec-reconciliation agent, `PM_REVIEW_brief-04.md` with the Phase 1 exit checklist, then `gh pr create` and stop.
-6. Before any phone test on the hosted project: read-only `GET /auth/v1/settings` (anonymous sign-ins on). Any new public env var goes to Vercel Preview first, Production only with its merge.
+1. `git fetch && git branch --show-current` → `phase-1/brief-04-order-board`. `git status --short` → empty unless task 7 is mid-flight. `git log --oneline main..HEAD` → docs commits, then one commit per Brief 04 task.
+2. `colima status` (start it if needed), then `npm run db:stop && npm run db:start && npm run db:reset && npm run check` → Vitest and pgTAP counts as in the desk line above (or higher). `.env.local` needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`.
+3. Continue with the next unbuilt task of `docs/phase-1/BRIEF-04-order-board.md` (7 to 10, in order), one commit each, `npm run check && npm run format:check` before each. Task 9's `place_order` change gets pgTAP negatives and falsification.
+4. Before the PR: `npm run build && CI=1 npx playwright test`, screenshots, spec-reconciliation agent, `PM_REVIEW_brief-04.md` with the Phase 1 exit checklist and the probe numbers from the task 5 log entry, then `gh pr create` and stop.
+5. Before any phone test on the hosted project: read-only `GET /auth/v1/settings` (anonymous sign-ins on). Any new public env var goes to Vercel Preview first, Production only with its merge. Hosted rollout of the seat-tables migration: merge first, then `supabase db push` (task 2 build call (ak)).
 
 **Waiting on Ari (not blocking the build):** PRD edits (5.10's four browser variables; D1's entry screen; the table matrix without delete; Q3 now built in Brief 04; D6 and 5.7 without diner-facing Ready) · a real Cloudflare Turnstile widget before hosted CAPTCHA is turned on (swap Production's site key first) · custom SMTP on the hosted project before the pilot · optionally, delete branches `phase-1/brief-02-portal` and `phase-1/brief-03-diner`.
 
@@ -265,13 +262,13 @@ A clean desk suite never reads as validated.
 
 | Surface | Desk-only | Validated (hosted preview) | On-device |
 |---|---|---|---|
-| Schema, RLS, RPC grants, DB checks | pgTAP 78/78: 43 security + 25 portal + 10 checks (2026-09-29); pgTAP falsification probes: 2 in PR #2, 5 in PR #3, 3 in Brief 03; legacy-tag mapping rehearsed on a database in `main`'s state | not run against the hosted project by Claude Code (rule 10) | n/a |
-| lib, validation, UI primitives, components | Vitest 161/161, 22 files (2026-09-29) | n/a | n/a |
+| Schema, RLS, RPC grants, DB checks | pgTAP 98/98: 43 security + 25 portal + 10 checks + 20 seating (2026-09-30); pgTAP falsification probes: 2 in PR #2, 5 in PR #3, 3 in Brief 03, 5 in Brief 04 task 2; legacy-tag mapping rehearsed on a database in `main`'s state | not run against the hosted project by Claude Code (rule 10) | n/a |
+| lib, validation, UI primitives, components | Vitest 197/197, 30 files (2026-09-30) | n/a | n/a |
 | Staff sign-up → confirm → onboarding → dashboard, with Turnstile | Playwright 3/3 (incl. Auth refusing sign-in without a token, falsified), local production build (2026-09-29) | Vercel preview builds; Ari's acceptance run: **unverified** | none |
 | Portal as owner: menu, 86, tables, QR rotation, print sheet, settings | Playwright 3/3, local production build (2026-09-29); print sheet PDF 2 pages for 7 tables, 7/7 codes decoded by Chromium `BarcodeDetector` | **unverified** | a printed card scanned by a phone: **none** |
 | Portal as floor staff | render tests + pgTAP only | none | none |
 | Diner: scan, Turnstile, menu, cart, place order, live status | Playwright 7/7, Chromium at desktop size plus 390×844 screenshots, local production build (2026-09-29); realtime negative test (another diner receives nothing), falsified; first-load JS 141 to 147 KB | production (hosted Supabase, test Turnstile key, CAPTCHA off), 2026-09-30 | Ari's phone: scan, order and live status passed (2026-09-30); browser not recorded; rotated-code check not reported |
-| Order board | not built | not built | none |
+| Order board, seat and close, diner names, dashboard counts | Playwright (2026-09-30): board live arrival, each step, cancel, stale move, seat/close/rescan, names, two-browser happy path, dashboard counts; CI mode on a production build 21 passed; long-service probe passed (token refresh, `jwt_expiry` 120); latency p95 173 ms over 20 orders (local production build) | not deployed | none |
 | iPhone Safari, real QR | n/a | n/a | none until Brief 04 |
 
 ## 11. Backlog
