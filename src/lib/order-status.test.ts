@@ -8,18 +8,19 @@ describe("timelineSteps", () => {
       "current",
       "upcoming",
       "upcoming",
-      "upcoming",
     ]);
   });
 
-  it("treats a skipped Preparing step as done once the order is ready", () => {
+  it("shows a ready order as still Preparing: diners never see Ready (ruled 2026-09-30)", () => {
     expect(timelineSteps("ready").map((s) => `${s.label}:${s.state}`)).toEqual([
       "Sent:done",
       "Accepted:done",
-      "Preparing:done",
-      "Ready:current",
+      "Preparing:current",
       "Served:upcoming",
     ]);
+    expect(timelineSteps("preparing")).toEqual(timelineSteps("ready"));
+    expect(STATUS_COPY.ready).toBe(STATUS_COPY.preparing);
+    expect(Object.values(STATUS_COPY).join(" ")).not.toMatch(/\bReady\b/);
   });
 
   it("completes on served and has no timeline when cancelled", () => {
@@ -29,6 +30,6 @@ describe("timelineSteps", () => {
 
   it("uses PRD 5.7's words", () => {
     expect(STATUS_COPY.submitted).toBe("Your order's in. The kitchen has it.");
-    expect(STATUS_COPY.ready).toBe("Ready. It's coming to your table.");
+    expect(STATUS_COPY.preparing).toBe("Preparing. It's being made now.");
   });
 });

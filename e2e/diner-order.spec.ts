@@ -7,6 +7,7 @@ import {
   createDinerFixture,
   rest,
   seatTable,
+  skipNameSheet,
   type DinerFixture,
 } from "./helpers";
 
@@ -66,6 +67,7 @@ test("the menu shows active sections only, sold-out items can't be added, the sh
   const { token } = fx.tables.C1;
   await page.goto(`/t/${token}`);
   await expect(page).toHaveURL(new RegExp(`/menu$`), { timeout: 20_000 });
+  await skipNameSheet(page);
 
   await expect(
     page.getByRole("navigation", { name: "Menu sections" }).getByRole("link"),
@@ -92,6 +94,7 @@ async function scanAndAdd(page: import("@playwright/test").Page, label: string, 
   const { token } = fx.tables[label];
   await page.goto(`/t/${token}`);
   await expect(page).toHaveURL(/\/menu$/, { timeout: 20_000 });
+  await skipNameSheet(page);
   for (const name of items) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await page
@@ -151,13 +154,15 @@ test("placing an order: the database prices it, and a sold-out item is named and
   });
   for (const [status, copy] of [
     ["accepted", "Accepted. Your food is on its way to being made."],
-    ["ready", "Ready. It's coming to your table."],
+    // Diners don't see Ready (ruled 2026-09-30): food at the pass still reads as Preparing.
+    ["ready", "Preparing. It's being made now."],
   ] as const) {
     await rest(fx.ownerJwt, `orders?id=eq.${orderId}`, { method: "PATCH", body: { status } });
     await expect(page.getByRole("heading", { name: copy })).toBeVisible({ timeout: 10_000 });
   }
-  await expect(page.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Done");
-  await expect(page.getByRole("listitem").filter({ hasText: "Ready" })).toContainText("Now");
+  await expect(page.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Now");
+  await expect(page.getByRole("listitem").filter({ hasText: "Served" })).not.toContainText("Done");
+  await expect(page.getByText("Ready", { exact: true })).toHaveCount(0);
 
   // The menu links back to the active order.
   await page.getByRole("link", { name: "Order more" }).click();
@@ -185,6 +190,7 @@ test("a table closed by staff says so instead of opening a new tab", async ({ pa
   await seatTable(fx, "A1");
   await page.getByRole("link", { name: "Scan again" }).click();
   await expect(page).toHaveURL(/\/menu$/);
+  await skipNameSheet(page); // a new table session asks again
   await expect(page.getByRole("link", { name: /View order/ })).toHaveCount(0);
 });
 

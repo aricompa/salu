@@ -45,3 +45,10 @@ export const orderSchema = z.object({
 });
 
 export type OrderInput = z.infer<typeof orderSchema>;
+
+/** What staff call a diner on the board (PRD D2). The database allows 1 to 40 characters. */
+export const displayNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Type a name, or tap Skip.")
+  .max(40, "Use 40 characters or fewer.");

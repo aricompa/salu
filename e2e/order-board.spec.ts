@@ -5,6 +5,8 @@ import {
   dinerPlacesOrder,
   ownerCookies,
   rest,
+  seatTable,
+  skipNameSheet,
   type DinerFixture,
 } from "./helpers";
 
@@ -146,6 +148,7 @@ test("a table takes orders only once staff seat it, and must be seated again aft
   // The same phone scans again and orders.
   await diner.getByRole("link", { name: "Scan again" }).click();
   await expect(diner).toHaveURL(/\/menu$/);
+  await skipNameSheet(diner);
   for (let i = 0; i < 2; i++) {
     await diner.getByRole("button", { name: /Burrata/ }).click();
     await diner
@@ -178,5 +181,51 @@ test("a table takes orders only once staff seat it, and must be seated again aft
   await diner.getByRole("link", { name: "Start a new tab" }).click();
   await expect(diner.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible();
   await phone.close();
+  await context.close();
+});
+
+test("diners name themselves or skip, and the board labels them", async ({ browser }) => {
+  const { token } = await addUnseatedTable(fx, "F1");
+  await seatTable(fx, "F1");
+  const { context, page } = await openBoard(browser);
+  await expect(page.getByRole("status").filter({ hasText: "Live" })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  /** One phone at F1: scan, answer the name sheet, order one dish. */
+  const order = async (dish: string, name: string | null) => {
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const diner = await phone.newPage();
+    await diner.goto(`/t/${token}`);
+    await expect(diner).toHaveURL(/\/menu$/, { timeout: 20_000 });
+    const sheet = diner.getByRole("dialog", { name: "What should we call you?" });
+    if (name === null) {
+      await skipNameSheet(diner);
+    } else {
+      await sheet.getByLabel("Your name").fill(name);
+      await sheet.getByRole("button", { name: "Save" }).click();
+      await expect(sheet).toBeHidden();
+    }
+    // A reload in the same session doesn't ask again.
+    await diner.reload();
+    await expect(diner.getByRole("heading", { level: 1, name: "Casa Grande" })).toBeVisible();
+    await expect(sheet).toBeHidden();
+
+    await diner.getByRole("button", { name: new RegExp(dish) }).click();
+    await diner
+      .getByRole("dialog", { name: dish })
+      .getByRole("button", { name: /^Add ·/ })
+      .click();
+    await diner.getByRole("link", { name: /View order/ }).click();
+    await diner.getByRole("button", { name: "Place order" }).click();
+    await expect(diner).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+    await phone.close();
+  };
+
+  await order("Tuna Crudo", null); // joins first: Guest 1
+  await order("Burrata", "Bea");
+  const cards = column(page, "New").getByRole("article", { name: "F1" });
+  await expect(cards.filter({ hasText: "Tuna Crudo" })).toContainText("Guest 1");
+  await expect(cards.filter({ hasText: "Burrata" })).toContainText("Bea");
   await context.close();
 });

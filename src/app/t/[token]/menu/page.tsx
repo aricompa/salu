@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { MenuView } from "@/components/diner/MenuView";
-import { getDinerSession } from "@/lib/diner";
+import { NameSheet } from "@/components/diner/NameSheet";
+import { getDinerSession, hasDisplayName } from "@/lib/diner";
 import { getDinerMenu } from "@/lib/diner-menu";
 import { getActiveOrderId } from "@/lib/diner-orders";
 import { TableClosed } from "../TableClosed";
+import { saveDisplayNameAction } from "./actions";
 
 export const metadata = { title: "Menu · Salu" };
 
@@ -12,9 +14,10 @@ export default async function MenuPage({ params }: { params: Promise<{ token: st
   const [{ token }, session] = await Promise.all([params, getDinerSession()]);
   if (session.kind !== "open") return <TableClosed token={token} kind={session.kind} />;
   const { table } = session;
-  const [menu, activeOrderId] = await Promise.all([
+  const [menu, activeOrderId, named] = await Promise.all([
     getDinerMenu(table.restaurantId),
     getActiveOrderId(table.sessionId),
+    hasDisplayName(table.sessionId),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function MenuPage({ params }: { params: Promise<{ token: st
           />
         )}
       </main>
+      {!named && <NameSheet sessionId={table.sessionId} save={saveDisplayNameAction} />}
     </>
   );
 }

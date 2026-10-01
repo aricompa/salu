@@ -1,3 +1,5 @@
+import { expect, type Page } from "@playwright/test";
+
 /** Local Supabase endpoints (Mailpit is the local test inbox, formerly Inbucket). */
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 export const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -263,4 +265,11 @@ export async function seatTable(fx: DinerFixture, label: string): Promise<string
     method: "POST",
     body: { p_table_id: fx.tables[label].id },
   });
+}
+
+/** The first menu visit in a table session asks for a name (PRD D2); most tests skip it. */
+export async function skipNameSheet(page: Page) {
+  const sheet = page.getByRole("dialog", { name: "What should we call you?" });
+  await sheet.getByRole("button", { name: "Skip" }).click();
+  await expect(sheet).toBeHidden();
 }
