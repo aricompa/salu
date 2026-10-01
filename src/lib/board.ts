@@ -53,3 +53,17 @@ export function dinerLabels(participants: readonly Participant[]): Map<string, s
   const ordered = [...participants].sort((a, b) => a.joined_at.localeCompare(b.joined_at));
   return new Map(ordered.map((p, i) => [p.user_id, p.display_name ?? `Guest ${i + 1}`]));
 }
+
+/**
+ * Average minutes from sent to served (the dashboard's "time to serve"), rounded to the
+ * minute; null when nothing was served.
+ */
+export function averageServeMinutes(
+  orders: ReadonlyArray<{ submitted_at: string; served_at: string | null }>,
+): number | null {
+  const spans = orders
+    .filter((o) => o.served_at)
+    .map((o) => (Date.parse(o.served_at as string) - Date.parse(o.submitted_at)) / 60_000);
+  if (spans.length === 0) return null;
+  return Math.round(spans.reduce((a, b) => a + b, 0) / spans.length);
+}

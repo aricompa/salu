@@ -1,20 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
-  useTransition,
   type ReactNode,
 } from "react";
-import { Button, cn } from "@/components/ui";
+import { LiveStatus, useLiveRefresh } from "@/components/portal/useLiveRefresh";
+import { Button } from "@/components/ui";
 import type { OrderStatus } from "@/lib/order-status";
-import { subscribeToRestaurantOrders } from "@/lib/realtime";
 import {
   chime,
   getServerSound,
@@ -33,16 +29,13 @@ export function useFreshOrder(id: string): boolean {
   return useContext(FreshOrders).has(id);
 }
 
-type Connection = "connecting" | "live" | "reconnecting";
-
 function announce(arrivals: LiveOrder[]): string {
   if (arrivals.length === 1) return `New order for ${arrivals[0].tableLabel}.`;
   return `${arrivals.length} new orders: ${arrivals.map((o) => o.tableLabel).join(", ")}.`;
 }
 
 /**
- * Keeps the server-rendered board live. Realtime is only a trigger: any order change for
- * this restaurant asks the server to re-render (one refresh in flight, one trailing). New
+ * Keeps the server-rendered board live (useLiveRefresh) and alerts for new orders. New
  * orders are found by comparing ids between renders, never from event payloads, so orders
  * that arrived during a disconnect still alert once the board catches up.
  */
@@ -55,33 +48,7 @@ export function BoardLive({
   orders: LiveOrder[];
   children: ReactNode;
 }) {
-  const router = useRouter();
-  const [connection, setConnection] = useState<Connection>("connecting");
-
-  // Coalesced refresh: every request bumps `requested`; a refresh covers all requests so
-  // far, and requests that arrive while one is in flight get exactly one more.
-  const [refreshing, startRefresh] = useTransition();
-  const [requested, setRequested] = useState(0);
-  const handled = useRef(0);
-  const requestRefresh = useCallback(() => setRequested((n) => n + 1), []);
-  useEffect(() => {
-    if (refreshing || handled.current === requested) return;
-    handled.current = requested;
-    startRefresh(() => router.refresh());
-  }, [requested, refreshing, router]);
-
-  useEffect(
-    () =>
-      subscribeToRestaurantOrders(restaurantId, {
-        onChange: requestRefresh,
-        onLive: () => {
-          setConnection("live");
-          requestRefresh();
-        },
-        onInterrupted: () => setConnection("reconnecting"),
-      }),
-    [restaurantId, requestRefresh],
-  );
+  const connection = useLiveRefresh(restaurantId);
 
   // Orders present on first render never alert; later arrivals still waiting to be
   // accepted do. One a colleague already accepted elsewhere needs no alert.
@@ -117,20 +84,7 @@ export function BoardLive({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">Orders</h1>
         <div className="flex flex-wrap items-center gap-4">
-          <p
-            role="status"
-            className={cn(
-              "flex items-center gap-2 font-medium",
-              connection === "live" ? "text-success" : "text-warning",
-            )}
-          >
-            <span aria-hidden="true">{connection === "live" ? "●" : "○"}</span>
-            {connection === "live"
-              ? "Live"
-              : connection === "reconnecting"
-                ? "Reconnecting…"
-                : "Connecting…"}
-          </p>
+          <LiveStatus connection={connection} />
           {sound === "unsupported" ? (
             <p className="text-muted">Sound isn&apos;t available in this browser.</p>
           ) : sound === "on" ? (

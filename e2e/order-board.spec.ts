@@ -166,6 +166,7 @@ test("a table takes orders only once staff seat it, and must be seated again aft
     }
   }
   await diner.getByRole("link", { name: /View order/ }).click();
+  await expect(diner.getByRole("heading", { name: "Your order" })).toBeVisible();
 
   // Staff close the table while the diner has a second order in the cart.
   await page.getByRole("button", { name: "Close table E1" }).click();

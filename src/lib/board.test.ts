@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NEXT_ACTION, canCancel, dinerLabels, ticketAge } from "./board";
+import { NEXT_ACTION, averageServeMinutes, canCancel, dinerLabels, ticketAge } from "./board";
 
 describe("ticketAge", () => {
   const at = (mins: number) => new Date(Date.parse("2026-09-30T18:00:00Z") + mins * 60_000);
@@ -42,5 +42,18 @@ describe("board actions", () => {
     expect(["submitted", "accepted", "preparing"].every((s) => canCancel(s as never))).toBe(true);
     expect(canCancel("ready")).toBe(false);
     expect(canCancel("served")).toBe(false);
+  });
+});
+
+describe("averageServeMinutes", () => {
+  it("averages sent to served, to the minute, and is null when nothing was served", () => {
+    expect(averageServeMinutes([])).toBeNull();
+    expect(
+      averageServeMinutes([
+        { submitted_at: "2026-09-30T18:00:00Z", served_at: "2026-09-30T18:10:00Z" },
+        { submitted_at: "2026-09-30T18:00:00Z", served_at: "2026-09-30T18:21:00Z" },
+        { submitted_at: "2026-09-30T18:00:00Z", served_at: null },
+      ]),
+    ).toBe(16);
   });
 });
