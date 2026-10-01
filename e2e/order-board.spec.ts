@@ -230,3 +230,53 @@ test("diners name themselves or skip, and the board labels them", async ({ brows
   await expect(cards.filter({ hasText: "Burrata" })).toContainText("Bea");
   await context.close();
 });
+
+test("happy path: a diner names themselves and orders, staff move it along, the phone follows live", async ({
+  browser,
+}) => {
+  const { token } = await addUnseatedTable(fx, "G1");
+  await seatTable(fx, "G1");
+  const { context, page } = await openBoard(browser);
+  await expect(page.getByRole("status").filter({ hasText: "Live" })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const phone = await phoneContext.newPage();
+  await phone.goto(`/t/${token}`);
+  await expect(phone).toHaveURL(/\/menu$/, { timeout: 20_000 });
+  const sheet = phone.getByRole("dialog", { name: "What should we call you?" });
+  await sheet.getByLabel("Your name").fill("Ari");
+  await sheet.getByRole("button", { name: "Save" }).click();
+  await expect(sheet).toBeHidden();
+  await phone.getByRole("button", { name: /Grilled Salmon/ }).click();
+  await phone
+    .getByRole("dialog", { name: "Grilled Salmon" })
+    .getByRole("button", { name: /^Add ·/ })
+    .click();
+  await phone.getByRole("link", { name: /View order/ }).click();
+  await phone.getByRole("button", { name: "Place order" }).click();
+  await expect(phone).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+  await expect(phone.getByText("Live: this page updates on its own.")).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const card = column(page, "New").getByRole("article", { name: "G1" });
+  await expect(card).toContainText("Ari");
+  await expect(card).toContainText("1 × Grilled Salmon");
+
+  const heading = (name: string) => phone.getByRole("heading", { name });
+  await page.getByRole("button", { name: "Accept G1, Ari" }).click();
+  await expect(heading("Accepted. Your food is on its way to being made.")).toBeVisible();
+  await page.getByRole("button", { name: "Start preparing G1, Ari" }).click();
+  await expect(heading("Preparing. It's being made now.")).toBeVisible();
+  // Ready is for staff: the phone stays on Preparing until it's served.
+  await page.getByRole("button", { name: "Mark ready G1, Ari" }).click();
+  await expect(column(page, "Ready").getByRole("article", { name: "G1" })).toBeVisible();
+  await expect(phone.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Now");
+  await page.getByRole("button", { name: "Mark served G1, Ari" }).click();
+  await expect(heading("Served. Enjoy!")).toBeVisible();
+
+  await phoneContext.close();
+  await context.close();
+});
