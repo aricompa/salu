@@ -44,6 +44,9 @@ insert into ctx select 'p1', t.id::text from dining_tables t, ctx r
   where r.k = 'rest' and t.restaurant_id = r.v::uuid and t.label = 'P1';
 insert into ctx select 'p2_token', t.qr_token from dining_tables t, ctx r
   where r.k = 'rest' and t.restaurant_id = r.v::uuid and t.label = 'P2';
+-- staff seat P2 before a diner joins it (Brief 04 prank protection, on by default)
+insert into ctx select 'p2_seated', public.open_table_session(t.id)::text from dining_tables t, ctx r
+  where r.k = 'rest' and t.restaurant_id = r.v::uuid and t.label = 'P2';
 
 reset role;
 insert into restaurant_members (restaurant_id, user_id, role)

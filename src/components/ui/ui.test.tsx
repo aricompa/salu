@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -162,7 +162,8 @@ describe("ConfirmDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Rotate QR A4" }));
     await userEvent.click(screen.getByRole("button", { name: "Rotate", hidden: true }));
     expect(action).toHaveBeenCalledOnce();
-    expect(close).toHaveBeenCalledTimes(2);
+    // The dialog closes once the action has answered, not on the click itself.
+    await vi.waitFor(() => expect(close).toHaveBeenCalledTimes(2));
   });
 });
 
@@ -178,5 +179,48 @@ describe("Stepper", () => {
     expect(onChange).toHaveBeenLastCalledWith(2);
     rerender(<Stepper label="Quantity" context="Salmon" value={2} max={2} onChange={onChange} />);
     expect(screen.getByRole("button", { name: "Add one Salmon" })).toBeDisabled();
+  });
+});
+
+describe("a dropped connection", () => {
+  it("shows next to an ActionButton instead of throwing to the error page", async () => {
+    const action = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const onSuccess = vi.fn();
+    render(
+      <ActionButton action={action} fields={{ id: "o1" }} onSuccess={onSuccess}>
+        Accept
+      </ActionButton>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We couldn't reach Salu. Check the connection and try again.",
+    );
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("shows inside a ConfirmDialog, which stays open", async () => {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    });
+    const action = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    render(
+      <ConfirmDialog
+        triggerLabel="Close table"
+        title="Close A4?"
+        body="The next party starts a new tab."
+        confirmLabel="Close table"
+        action={action}
+        fields={{ sessionId: "s1" }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close table" }));
+    const dialog = screen.getByRole("dialog", { name: "Close A4?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close table" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("We couldn't reach Salu.");
+    expect(dialog).toHaveAttribute("open");
   });
 });

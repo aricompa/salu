@@ -17,6 +17,7 @@ export type FormResult<T, F extends string> =
 
 export type AppErrorCode =
   | "invalid_table"
+  | "table_not_open"
   | "item_unavailable"
   | "session_closed"
   | "rate_limited"
@@ -36,6 +37,7 @@ export type AppErrorCode =
   | "weak_password"
   | "too_many_attempts"
   | "captcha_failed"
+  | "connection"
   | "unknown";
 
 export type AppError = { code: AppErrorCode; message: string };
@@ -43,8 +45,9 @@ export type AppError = { code: AppErrorCode; message: string };
 /** Friendly copy per error (PRD 5.7: short, warm, plain, says what to do next). */
 export const ERROR_COPY: Record<AppErrorCode, string> = {
   invalid_table: "This table code isn't active. Ask your server for help.",
+  table_not_open: "Your table isn't open yet. Ask your server to seat you, then scan again.",
   item_unavailable: "Sorry, something in your order just sold out. We took it off your order.",
-  session_closed: "This table was closed. Scan the code again to start a new tab.",
+  session_closed: "This table was closed. To order again, ask your server to seat you.",
   rate_limited: "Slow down a moment, then try again.",
   invalid_transition: "That order already moved on. Refresh to see where it is.",
   not_participant: "Scan the code on your table to order.",
@@ -62,12 +65,14 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   weak_password: "Choose a stronger password.",
   too_many_attempts: "Too many attempts. Wait a minute, then try again.",
   captcha_failed: "We couldn't check this device. Try again.",
+  connection: "We couldn't reach Salu. Check the connection and try again.",
   unknown: "Something went wrong. Try again in a moment.",
 };
 
 /** Hints raised by the database (`raise ... using hint = '<code>'`). */
 const DB_HINTS = new Set<AppErrorCode>([
   "invalid_table",
+  "table_not_open",
   "item_unavailable",
   "session_closed",
   "rate_limited",
@@ -94,6 +99,15 @@ export function toAppError(
   else if (err?.code === "23505") code = options.unique ?? "slug_taken";
   else if (err?.code === "42501") code = "not_allowed";
   return { code, message: ERROR_COPY[code] };
+}
+
+/**
+ * A call that never reached the server: the browser's fetch fails with a TypeError, or
+ * the device says it's offline. Anything else is a real error and should surface as one.
+ */
+export function isConnectionFailure(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return err instanceof TypeError;
 }
 
 export function fail(code: AppErrorCode): { ok: false; error: AppError } {

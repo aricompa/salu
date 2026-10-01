@@ -14,7 +14,8 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: baseHeaders },
       // The staff portal and auth pages must never be framed. CSP lands in Phase 3 with Stripe.
       { source: "/restaurant/:path*", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
-      { source: "/login", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
+      // `:path*` also matches /login itself; it covers /login/new-password.
+      { source: "/login/:path*", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
     ];
   },
 };

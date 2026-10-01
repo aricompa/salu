@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { decodeDinerCookie, encodeDinerCookie, qrTokenSchema, type DinerTable } from "./diner";
+import {
+  decodeDinerCookie,
+  displayNameSchema,
+  encodeDinerCookie,
+  qrTokenSchema,
+  type DinerTable,
+} from "./diner";
 
 const table: DinerTable = {
   sessionId: "5d2f838d-4756-48cb-81b5-7b046b7e0217",
@@ -37,5 +43,14 @@ describe("qrTokenSchema", () => {
       "5D2F838D475648CB81B57B046B7E0217",
     ])
       expect(qrTokenSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe("displayNameSchema", () => {
+  it("trims and accepts 1 to 40 characters, as the database does", () => {
+    expect(displayNameSchema.parse("  Ari  ")).toBe("Ari");
+    expect(displayNameSchema.parse("é".repeat(40))).toHaveLength(40);
+    expect(displayNameSchema.safeParse("   ").success).toBe(false);
+    expect(displayNameSchema.safeParse("x".repeat(41)).success).toBe(false);
   });
 });

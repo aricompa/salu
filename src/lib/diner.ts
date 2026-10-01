@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { toAppError, type ActionResult } from "@/lib/errors";
+import { fail, toAppError, type ActionResult } from "@/lib/errors";
+import { oneRowChanged } from "@/lib/mutations";
 import { createClient } from "@/lib/supabase/server";
 import {
   DINER_COOKIE,
@@ -64,4 +65,44 @@ export async function getDinerSession(): Promise<DinerSession> {
     .maybeSingle();
   if (error || !data || data.restaurant_id !== table.restaurantId) return { kind: "none" };
   return data.status === "open" ? { kind: "open", table } : { kind: "closed", table };
+}
+
+/** The caller's id from verified claims (rule 7), or null when signed out. */
+async function currentUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  const sub = data?.claims?.sub;
+  return !error && typeof sub === "string" ? sub : null;
+}
+
+/**
+ * Whether this diner has told staff their name in this session (PRD D2). Filtered to the
+ * caller's own row: staff testing their own tables can read every participant.
+ */
+export async function hasDisplayName(sessionId: string): Promise<boolean> {
+  const userId = await currentUserId();
+  if (!userId) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("session_participants")
+    .select("display_name")
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return Boolean(data?.display_name);
+}
+
+/** Sets the diner's own name for this session (participants_self_update), checked by row count. */
+export async function setDisplayName(sessionId: string, name: string): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("not_allowed");
+  const supabase = await createClient();
+  return oneRowChanged(
+    await supabase
+      .from("session_participants")
+      .update({ display_name: name })
+      .eq("session_id", sessionId)
+      .eq("user_id", userId)
+      .select("session_id"),
+  );
 }

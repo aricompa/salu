@@ -55,6 +55,7 @@ export default async function SettingsPage() {
         <OrderSettingsForm
           editWindowMins={settings.editWindowMins}
           additionCutoffMins={settings.additionCutoffMins}
+          requireStaffOpen={settings.requireStaffOpen}
           disabled={!manage}
         />
       </Card>

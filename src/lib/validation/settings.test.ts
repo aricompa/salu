@@ -3,10 +3,30 @@ import { isValidTimeZone, orderSettingsSchema, restaurantProfileSchema } from ".
 
 describe("orderSettingsSchema", () => {
   it("accepts the database ranges", () => {
-    expect(orderSettingsSchema.parse({ editWindowMins: "0", additionCutoffMins: "240" })).toEqual({
-      editWindowMins: 0,
-      additionCutoffMins: 240,
-    });
+    expect(
+      orderSettingsSchema.parse({
+        editWindowMins: "0",
+        additionCutoffMins: "240",
+        requireStaffOpen: "on",
+      }),
+    ).toEqual({ editWindowMins: 0, additionCutoffMins: 240, requireStaffOpen: true });
+    expect(
+      orderSettingsSchema.parse({
+        editWindowMins: "5",
+        additionCutoffMins: "20",
+        requireStaffOpen: "",
+      }).requireStaffOpen,
+    ).toBe(false);
+  });
+
+  it("rejects anything but a checkbox value for seating", () => {
+    expect(
+      orderSettingsSchema.safeParse({
+        editWindowMins: "5",
+        additionCutoffMins: "20",
+        requireStaffOpen: "false",
+      }).success,
+    ).toBe(false);
   });
 
   it.each([
@@ -17,9 +37,10 @@ describe("orderSettingsSchema", () => {
     ["2.5", "20"],
     ["5", "abc"],
   ])("rejects edit window %j with cutoff %j", (editWindowMins, additionCutoffMins) => {
-    expect(orderSettingsSchema.safeParse({ editWindowMins, additionCutoffMins }).success).toBe(
-      false,
-    );
+    expect(
+      orderSettingsSchema.safeParse({ editWindowMins, additionCutoffMins, requireStaffOpen: "on" })
+        .success,
+    ).toBe(false);
   });
 });
 

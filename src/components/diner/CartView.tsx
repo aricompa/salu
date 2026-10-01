@@ -136,7 +136,7 @@ export function CartView({
               <p className="text-danger">{problem.message}</p>
               {problem.closed && (
                 <a href={`/t/${token}`} className={buttonStyles("secondary")}>
-                  Start a new tab
+                  Scan again
                 </a>
               )}
             </div>

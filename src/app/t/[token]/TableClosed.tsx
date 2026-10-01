@@ -11,14 +11,14 @@ export function TableClosed({ token, kind }: { token: string; kind: "closed" | "
       </h1>
       <p className="text-muted">
         {kind === "closed"
-          ? "Thanks for dining! Scan the code again to start a new tab."
+          ? "Thanks for dining! To order again, ask your server to seat you."
           : "Your table's QR code opens the menu."}
       </p>
       <a
         href={`/t/${token}`}
         className="inline-flex min-h-11 items-center justify-center rounded-card bg-brand px-4 py-2 font-medium text-brand-contrast"
       >
-        {kind === "closed" ? "Start a new tab" : "Open the menu"}
+        {kind === "closed" ? "Scan again" : "Open the menu"}
       </a>
     </main>
   );

@@ -262,6 +262,13 @@ otp_expiry = 3600
 subject = "Confirm your Salu account"
 content_path = "./supabase/templates/confirmation.html"
 
+# Password reset uses the same token_hash flow; /auth/confirm sends type=recovery to
+# /login/new-password. The hosted project needs this template too (Dashboard > Auth >
+# Email Templates > Reset password).
+[auth.email.template.recovery]
+subject = "Reset your Salu password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

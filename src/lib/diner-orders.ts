@@ -38,17 +38,21 @@ export async function placeOrder(
 }
 
 /**
- * Which of these items can't be ordered right now (sold out or deleted). place_order
- * doesn't say which line failed, so after item_unavailable the cart asks here and names them.
+ * Which of these items can't be ordered right now: sold out, deleted, or in a hidden or
+ * missing category (as place_order decides). place_order doesn't say which line failed,
+ * so after item_unavailable the cart asks here and names them. Diners can't read a hidden
+ * category at all (RLS), so its embed comes back empty.
  */
 export async function unavailableAmong(restaurantId: string, itemIds: string[]): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("menu_items")
-    .select("id, is_available")
+    .select("id, is_available, menu_categories (is_active)")
     .eq("restaurant_id", restaurantId)
     .in("id", itemIds);
-  const available = new Set((data ?? []).filter((i) => i.is_available).map((i) => i.id));
+  const available = new Set(
+    (data ?? []).filter((i) => i.is_available && i.menu_categories?.is_active).map((i) => i.id),
+  );
   return itemIds.filter((id) => !available.has(id));
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useRef } from "react";
+import { fail, isConnectionFailure, type ActionResult } from "@/lib/errors";
 import type { ButtonAction } from "./ActionButton";
 import { Button, type ButtonProps } from "./Button";
 
@@ -15,6 +16,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  dismissLabel = "Cancel",
   action,
   fields,
   onDone,
@@ -26,22 +28,33 @@ export function ConfirmDialog({
   title: string;
   body: string;
   confirmLabel: string;
+  /** The button that closes without acting. Say "Keep order" when the action is a cancel. */
+  dismissLabel?: string;
   action: ButtonAction;
   fields: Record<string, string>;
+  /** Runs when the action succeeds, inside the action (see ActionButton's onSuccess). */
   onDone?: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const bodyId = useId();
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
+    async (prev, formData) => {
+      // A dropped connection rejects the call: say so in the dialog (see ActionButton).
+      const result = await action(prev, formData).catch((err: unknown) => {
+        if (isConnectionFailure(err)) return fail("connection");
+        throw err;
+      });
+      if (result?.ok) onDone?.();
+      return result;
+    },
+    null,
+  );
   const error = state && !state.ok ? state.error.message : null;
 
   useEffect(() => {
-    if (state?.ok) {
-      dialogRef.current?.close();
-      onDone?.();
-    }
-  }, [state, onDone]);
+    if (state?.ok) dialogRef.current?.close();
+  }, [state]);
 
   return (
     <>
@@ -81,7 +94,7 @@ export function ConfirmDialog({
           )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="ghost" onClick={() => dialogRef.current?.close()}>
-              Cancel
+              {dismissLabel}
             </Button>
             <Button type="submit" loading={pending}>
               {confirmLabel}

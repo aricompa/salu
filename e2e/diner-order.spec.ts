@@ -1,11 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import {
+  addUnseatedTable,
   PUBLISHABLE_KEY,
   SUPABASE_URL,
   TEST_CAPTCHA_TOKEN,
   createDinerFixture,
   rest,
+  seatTable,
+  skipNameSheet,
   type DinerFixture,
 } from "./helpers";
 
@@ -65,6 +68,7 @@ test("the menu shows active sections only, sold-out items can't be added, the sh
   const { token } = fx.tables.C1;
   await page.goto(`/t/${token}`);
   await expect(page).toHaveURL(new RegExp(`/menu$`), { timeout: 20_000 });
+  await skipNameSheet(page);
 
   await expect(
     page.getByRole("navigation", { name: "Menu sections" }).getByRole("link"),
@@ -91,6 +95,7 @@ async function scanAndAdd(page: import("@playwright/test").Page, label: string, 
   const { token } = fx.tables[label];
   await page.goto(`/t/${token}`);
   await expect(page).toHaveURL(/\/menu$/, { timeout: 20_000 });
+  await skipNameSheet(page);
   for (const name of items) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
     await page
@@ -150,13 +155,15 @@ test("placing an order: the database prices it, and a sold-out item is named and
   });
   for (const [status, copy] of [
     ["accepted", "Accepted. Your food is on its way to being made."],
-    ["ready", "Ready. It's coming to your table."],
+    // Diners don't see Ready (ruled 2026-09-30): food at the pass still reads as Preparing.
+    ["ready", "Preparing. It's being made now."],
   ] as const) {
     await rest(fx.ownerJwt, `orders?id=eq.${orderId}`, { method: "PATCH", body: { status } });
     await expect(page.getByRole("heading", { name: copy })).toBeVisible({ timeout: 10_000 });
   }
-  await expect(page.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Done");
-  await expect(page.getByRole("listitem").filter({ hasText: "Ready" })).toContainText("Now");
+  await expect(page.getByRole("listitem").filter({ hasText: "Preparing" })).toContainText("Now");
+  await expect(page.getByRole("listitem").filter({ hasText: "Served" })).not.toContainText("Done");
+  await expect(page.getByText("Ready", { exact: true })).toHaveCount(0);
 
   // The menu links back to the active order.
   await page.getByRole("link", { name: "Order more" }).click();
@@ -176,10 +183,15 @@ test("a table closed by staff says so instead of opening a new tab", async ({ pa
   });
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "This table was closed." })).toContainText(
-    "This table was closed. Scan the code again to start a new tab.",
+    "This table was closed. To order again, ask your server to seat you.",
   );
-  await page.getByRole("link", { name: "Start a new tab" }).click();
+  // A closed table must be seated again before it takes orders (Brief 04 prank protection).
+  await page.getByRole("link", { name: "Scan again" }).click();
+  await expect(page.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible();
+  await seatTable(fx, "A1");
+  await page.getByRole("link", { name: "Scan again" }).click();
   await expect(page).toHaveURL(/\/menu$/);
+  await skipNameSheet(page); // a new table session asks again
   await expect(page.getByRole("link", { name: /View order/ })).toHaveCount(0);
 });
 
@@ -231,4 +243,33 @@ test("another diner's device receives no realtime changes for someone else's ord
   await page.waitForTimeout(3_000);
   expect(received).toEqual([]);
   await spy.removeAllChannels();
+});
+
+test("an item whose section was hidden after it went in the cart is named and removed", async ({
+  page,
+}) => {
+  await addUnseatedTable(fx, "E2");
+  await seatTable(fx, "E2");
+  await scanAndAdd(page, "E2", ["Tuna Crudo", "Grilled Salmon"]);
+  const starters = await rest<Array<{ id: string }>>(
+    fx.ownerJwt,
+    `menu_categories?restaurant_id=eq.${fx.restaurantId}&name=eq.Starters&select=id`,
+  );
+  const hide = (is_active: boolean) =>
+    rest(fx.ownerJwt, `menu_categories?id=eq.${starters[0].id}`, {
+      method: "PATCH",
+      body: { is_active },
+    });
+  await hide(false);
+  try {
+    await page.getByRole("button", { name: "Place order" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Tuna Crudo" })).toHaveText(
+      "Sorry, Tuna Crudo just sold out. We took it off your order.",
+    );
+    await expect(page.getByRole("listitem").filter({ hasText: "Tuna Crudo" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Place order" }).click();
+    await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+  } finally {
+    await hide(true);
+  }
 });

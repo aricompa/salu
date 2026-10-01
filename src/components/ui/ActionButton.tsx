@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, type ReactNode } from "react";
-import type { ActionResult } from "@/lib/errors";
+import { fail, isConnectionFailure, type ActionResult } from "@/lib/errors";
 import { Button, type ButtonProps } from "./Button";
 
 export type ButtonAction = (
@@ -20,6 +20,7 @@ export function ActionButton({
   variant = "secondary",
   disabled,
   className,
+  onSuccess,
 }: {
   action: ButtonAction;
   fields: Record<string, string>;
@@ -27,8 +28,25 @@ export function ActionButton({
   variant?: ButtonProps["variant"];
   disabled?: boolean;
   className?: string;
+  /**
+   * Runs when the action succeeds, inside the action: a success often moves or removes
+   * this button (a card changing column), so an effect after render would never run.
+   */
+  onSuccess?: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
+    async (prev, formData) => {
+      // A dropped connection rejects the call: say so next to the button rather than
+      // letting it replace the page (a board mid-service must stay up).
+      const result = await action(prev, formData).catch((err: unknown) => {
+        if (isConnectionFailure(err)) return fail("connection");
+        throw err;
+      });
+      if (result?.ok) onSuccess?.();
+      return result;
+    },
+    null,
+  );
   const error = state && !state.ok ? state.error.message : null;
   return (
     <form action={formAction} className="inline-flex flex-col items-start gap-1">
@@ -45,7 +63,7 @@ export function ActionButton({
         {children}
       </Button>
       {error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-danger">
           {error}
         </p>
       )}

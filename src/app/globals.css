@@ -82,6 +82,10 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Staff portal: field hints and errors at 16px, PRD 5.4's body minimum (ruled 2026-09-30).
+   Diner pages keep 14px hints. The portal layout marks its tree with data-portal. */
+@custom-variant portal (&:where([data-portal] *));
+
 @layer base {
   body {
     @apply bg-surface font-sans text-text antialiased;
@@ -111,6 +115,29 @@
 @keyframes sheet-in {
   from {
     transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* New-order pulse on the staff board (skipped under prefers-reduced-motion, see OrderCardFrame.tsx). */
+@keyframes order-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--salu-focus);
+  }
+}
+
+/* Toast entrance (skipped under prefers-reduced-motion, see Toast.tsx). */
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
     opacity: 0;
   }
   to {

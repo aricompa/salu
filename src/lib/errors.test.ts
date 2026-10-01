@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ERROR_COPY, fail, toAppError, type AppErrorCode } from "./errors";
+import { ERROR_COPY, fail, isConnectionFailure, toAppError, type AppErrorCode } from "./errors";
 
-// Every hint the Phase 1 migration raises. CLAUDE.md lists the first five.
+// Every hint the Phase 1 migrations raise. CLAUDE.md lists the first five.
 const DB_HINTS: AppErrorCode[] = [
   "invalid_table",
+  "table_not_open",
   "item_unavailable",
   "session_closed",
   "rate_limited",
@@ -72,5 +73,15 @@ describe("drift guard", () => {
     const hints = [...sql.matchAll(/hint\s*=\s*'([a-z_]+)'/g)].map((m) => m[1]);
     expect(hints.length).toBeGreaterThan(0);
     for (const hint of hints) expect(Object.keys(ERROR_COPY)).toContain(hint);
+  });
+});
+
+describe("isConnectionFailure", () => {
+  it("is a failed fetch or an offline device, and nothing else", () => {
+    expect(isConnectionFailure(new TypeError("Failed to fetch"))).toBe(true);
+    expect(
+      isConnectionFailure(new Error("An unexpected response was received from the server.")),
+    ).toBe(false);
+    expect(isConnectionFailure(undefined)).toBe(false);
   });
 });
