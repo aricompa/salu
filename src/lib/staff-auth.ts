@@ -1,62 +1,6 @@
 import "server-only";
-import { publicEnv } from "@/lib/env";
 import { isStaffClaims } from "@/lib/staff-claims";
 import { createClient } from "@/lib/supabase/server";
-import type { Credentials } from "@/lib/validation/auth";
-
-export type SignInOutcome =
-  | "ok"
-  | "invalid_credentials"
-  | "email_not_confirmed"
-  | "rate_limited"
-  | "captcha_failed"
-  | "error";
-
-/** Password sign-in. CAPTCHA is on for the whole project, so a Turnstile token is required. */
-export async function signInStaff(
-  { email, password }: Credentials,
-  captchaToken: string,
-): Promise<SignInOutcome> {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-    options: { captchaToken },
-  });
-  if (!error) return "ok";
-  if (error.code === "captcha_failed") return "captcha_failed";
-  if (error.code === "email_not_confirmed") return "email_not_confirmed";
-  if (error.status === 429) return "rate_limited";
-  if (error.code === "invalid_credentials" || error.status === 400) return "invalid_credentials";
-  return "error";
-}
-
-export type SignUpOutcome =
-  "check_email" | "weak_password" | "rate_limited" | "captcha_failed" | "error";
-
-/**
- * Starts staff sign-up. Supabase answers the same way whether or not the
- * email already exists, so the caller always shows "check your email".
- */
-export async function signUpStaff(
-  { email, password }: Credentials,
-  captchaToken: string,
-): Promise<SignUpOutcome> {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${publicEnv().NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/restaurant/onboarding`,
-      captchaToken,
-    },
-  });
-  if (!error) return "check_email";
-  if (error.code === "captcha_failed") return "captcha_failed";
-  if (error.code === "weak_password") return "weak_password";
-  if (error.status === 429) return "rate_limited";
-  return "error";
-}
 
 const EMAIL_OTP_TYPES = ["email", "signup", "recovery", "invite", "email_change"] as const;
 type EmailOtpType = (typeof EMAIL_OTP_TYPES)[number];

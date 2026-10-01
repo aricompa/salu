@@ -9,26 +9,40 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
 }
 
-/** Polls the local inbox for the confirmation email and returns its link. */
-export async function confirmationLink(email: string, timeoutMs = 15_000): Promise<string> {
+/**
+ * Polls the local inbox for an email to this address whose /auth/confirm link has the
+ * given type (`email` for sign-up confirmation, `recovery` for password reset), newest
+ * first, and returns the link.
+ */
+export async function emailLink(
+  email: string,
+  type: "email" | "recovery",
+  timeoutMs = 15_000,
+): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const res = await fetch(
       `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
     );
     const list = (await res.json()) as { messages?: Array<{ ID: string }> };
-    if (list.messages?.length) {
-      const msg = (await (
-        await fetch(`${MAILPIT_URL}/api/v1/message/${list.messages[0].ID}`)
-      ).json()) as {
+    for (const { ID } of list.messages ?? []) {
+      const msg = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${ID}`)).json()) as {
         HTML: string;
       };
-      const href = msg.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/)?.[1];
-      if (href) return href.replaceAll("&amp;", "&");
+      const href = msg.HTML.match(/href="([^"]*\/auth\/confirm[^"]*)"/)?.[1]?.replaceAll(
+        "&amp;",
+        "&",
+      );
+      if (href && new URL(href).searchParams.get("type") === type) return href;
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error(`No confirmation email for ${email}`);
+  throw new Error(`No ${type} email for ${email}`);
+}
+
+/** The sign-up confirmation link for this address. */
+export function confirmationLink(email: string, timeoutMs = 15_000): Promise<string> {
+  return emailLink(email, "email", timeoutMs);
 }
 
 /** Encodes a session the way @supabase/ssr stores it: base64 cookie, chunked at 3180 chars. */
@@ -204,13 +218,17 @@ export async function createDinerFixture(): Promise<DinerFixture> {
   };
 }
 
-/** The fixture owner's session as cookies for a browser context (the staff portal). */
+const ownerSessions = new WeakMap<DinerFixture, ReturnType<typeof staffSessionCookies>>();
+
+/**
+ * The fixture owner's session as cookies for a browser context (the staff portal). One
+ * sign-in per fixture: local Auth allows 30 sign-ins per 5 minutes per IP, and access
+ * tokens outlive any single test, so contexts can share the session.
+ */
 export async function ownerCookies(fx: DinerFixture) {
-  return (await staffSessionCookies(fx.ownerEmail, fx.ownerPassword)).map((c) => ({
-    ...c,
-    domain: "localhost",
-    path: "/",
-  }));
+  if (!ownerSessions.has(fx))
+    ownerSessions.set(fx, staffSessionCookies(fx.ownerEmail, fx.ownerPassword));
+  return (await ownerSessions.get(fx)!).map((c) => ({ ...c, domain: "localhost", path: "/" }));
 }
 
 /**

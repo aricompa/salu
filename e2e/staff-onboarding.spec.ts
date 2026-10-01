@@ -100,6 +100,8 @@ test("with CAPTCHA on, Auth refuses sign-ins that carry no Turnstile token", asy
       { email: "nobody@example.com", password: "correct-horse-battery" },
     ],
     ["signup", {}],
+    // Password reset needs the device check too (the reset form depends on it).
+    ["recover", { email: "nobody@example.com" }],
   ] as const) {
     const res = await post(path, body);
     expect(res.status).toBe(400);
