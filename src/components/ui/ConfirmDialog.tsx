@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useRef } from "react";
+import type { ActionResult } from "@/lib/errors";
 import type { ButtonAction } from "./ActionButton";
 import { Button, type ButtonProps } from "./Button";
 
@@ -31,20 +32,25 @@ export function ConfirmDialog({
   dismissLabel?: string;
   action: ButtonAction;
   fields: Record<string, string>;
+  /** Runs when the action succeeds, inside the action (see ActionButton's onSuccess). */
   onDone?: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const bodyId = useId();
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
+    async (prev, formData) => {
+      const result = await action(prev, formData);
+      if (result?.ok) onDone?.();
+      return result;
+    },
+    null,
+  );
   const error = state && !state.ok ? state.error.message : null;
 
   useEffect(() => {
-    if (state?.ok) {
-      dialogRef.current?.close();
-      onDone?.();
-    }
-  }, [state, onDone]);
+    if (state?.ok) dialogRef.current?.close();
+  }, [state]);
 
   return (
     <>

@@ -20,6 +20,7 @@ export function ActionButton({
   variant = "secondary",
   disabled,
   className,
+  onSuccess,
 }: {
   action: ButtonAction;
   fields: Record<string, string>;
@@ -27,8 +28,20 @@ export function ActionButton({
   variant?: ButtonProps["variant"];
   disabled?: boolean;
   className?: string;
+  /**
+   * Runs when the action succeeds, inside the action: a success often moves or removes
+   * this button (a card changing column), so an effect after render would never run.
+   */
+  onSuccess?: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
+    async (prev, formData) => {
+      const result = await action(prev, formData);
+      if (result?.ok) onSuccess?.();
+      return result;
+    },
+    null,
+  );
   const error = state && !state.ok ? state.error.message : null;
   return (
     <form action={formAction} className="inline-flex flex-col items-start gap-1">

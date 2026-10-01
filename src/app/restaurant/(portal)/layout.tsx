@@ -1,6 +1,6 @@
 import { KitchenClock } from "@/components/portal/KitchenClock";
 import { PortalNav } from "@/components/portal/PortalNav";
-import { Button, OfflineBanner } from "@/components/ui";
+import { Button, OfflineBanner, ToastProvider } from "@/components/ui";
 import { requireMembership } from "@/lib/auth";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +23,9 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
       </header>
       <OfflineBanner />
-      <main className="mx-auto max-w-5xl p-6 print:max-w-none print:p-0">{children}</main>
+      <ToastProvider>
+        <main className="mx-auto max-w-5xl p-6 print:max-w-none print:p-0">{children}</main>
+      </ToastProvider>
     </div>
   );
 }

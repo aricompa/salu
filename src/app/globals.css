@@ -129,3 +129,15 @@
     box-shadow: 0 0 0 6px var(--salu-focus);
   }
 }
+
+/* Toast entrance (skipped under prefers-reduced-motion, see Toast.tsx). */
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

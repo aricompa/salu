@@ -3,9 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { BoardOrder } from "@/lib/orders";
 
-vi.mock("./actions", () => ({ setOrderStatusAction: vi.fn() }));
+vi.mock("./actions", () => ({
+  setOrderStatusAction: vi.fn(async () => ({ ok: true, data: null })),
+}));
 vi.mock("@/lib/realtime", () => ({ subscribeToRestaurantOrders: vi.fn(() => () => {}) }));
 const { OrderBoard } = await import("./OrderBoard");
+const { ToastProvider } = await import("@/components/ui");
+const { setOrderStatusAction } = await import("./actions");
 
 const order = (over: Partial<BoardOrder> & Pick<BoardOrder, "id" | "status">): BoardOrder => ({
   sessionId: "s1",
@@ -107,5 +111,24 @@ describe("OrderBoard", () => {
     expect(served).toHaveTextContent("2 items");
     expect(served).toHaveTextContent("7:42 PM");
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
+  });
+
+  it("confirms a step with a toast once the server says it's done", async () => {
+    render(
+      <ToastProvider>
+        <OrderBoard
+          active={[order({ id: "o1", status: "submitted", tableLabel: "A1", dinerLabel: "Ari" })]}
+          done={[]}
+          timeZone="UTC"
+        />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Accept A1, Ari" }));
+    expect(await screen.findByText("Accepted A1's order.")).toBeVisible();
+    const [, formData] = vi.mocked(setOrderStatusAction).mock.lastCall as unknown as [
+      unknown,
+      FormData,
+    ];
+    expect(Object.fromEntries(formData)).toEqual({ id: "o1", to: "accepted" });
   });
 });

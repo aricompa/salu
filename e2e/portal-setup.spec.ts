@@ -138,7 +138,9 @@ test("owner adds tables, rotates a QR code and prints the sheet", async ({ page 
   await page.getByRole("button", { name: "Rotate QR A4" }).click();
   await expect(page.getByRole("dialog")).toContainText("Printed codes for A4 will stop working.");
   await page.getByRole("dialog").getByRole("button", { name: "Rotate QR" }).click();
-  await expect(page.getByText("New code ready. Print it from the sheet.")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "New code ready" })).toHaveText(
+    /New code ready for A4\. Print it from the sheet\./,
+  );
   await expect(a4.locator("code")).not.toHaveAttribute("title", before as string);
   await expect(page.locator(`code[title="${before}"]`)).toHaveCount(0);
 

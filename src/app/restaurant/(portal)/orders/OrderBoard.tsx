@@ -1,8 +1,8 @@
-import { ActionButton, Badge, ConfirmDialog } from "@/components/ui";
+import { Badge } from "@/components/ui";
 import { BOARD_COLUMNS, NEXT_ACTION, canCancel, type ActiveStatus } from "@/lib/board";
 import type { BoardOrder } from "@/lib/orders";
 import { formatTimeIn } from "@/lib/time";
-import { setOrderStatusAction } from "./actions";
+import { CancelOrderButton, OrderStepButton } from "./BoardActions";
 import { OrderAge } from "./OrderAge";
 import { OrderCardFrame } from "./OrderCardFrame";
 
@@ -44,25 +44,15 @@ function OrderCard({ order }: { order: BoardOrder }) {
       </ul>
       {order.notes && <Note label="Order note" text={order.notes} />}
       <div className="flex flex-wrap items-start gap-2">
-        <ActionButton
-          action={setOrderStatusAction}
-          fields={{ id: order.id, to: next.to }}
-          variant="primary"
-        >
-          {next.label} <span className="sr-only">{who}</span>
-        </ActionButton>
+        <OrderStepButton
+          orderId={order.id}
+          to={next.to}
+          label={next.label}
+          tableLabel={order.tableLabel}
+          who={who}
+        />
         {canCancel(status) && (
-          <ConfirmDialog
-            triggerLabel="Cancel"
-            triggerContext={who}
-            triggerVariant="ghost"
-            title={`Cancel ${order.tableLabel}'s order?`}
-            body="The diner sees it was cancelled."
-            confirmLabel="Cancel order"
-            dismissLabel="Keep order"
-            action={setOrderStatusAction}
-            fields={{ id: order.id, to: "cancelled" }}
-          />
+          <CancelOrderButton orderId={order.id} tableLabel={order.tableLabel} who={who} />
         )}
       </div>
     </OrderCardFrame>

@@ -1,9 +1,6 @@
-import { ActionButton, ConfirmDialog } from "@/components/ui";
+import { openOrders } from "@/lib/board";
 import type { SeatingTable } from "@/lib/table-sessions";
-import { closeTableAction, seatTableAction } from "./actions";
-
-const openOrders = (n: number) =>
-  n === 0 ? "No open orders" : `${n} open order${n === 1 ? "" : "s"}`;
+import { CloseTableButton, SeatButton } from "./BoardActions";
 
 /**
  * Seat and close tables from the board (prank protection, ruled 2026-09-30): a table's
@@ -39,32 +36,13 @@ export function TablesStrip({
                   {table.sessionId ? `Seated · ${openOrders(count)}` : "Not seated"}
                 </p>
                 {table.sessionId ? (
-                  <ConfirmDialog
-                    triggerLabel="Close table"
-                    triggerContext={table.label}
-                    title={
-                      count > 0
-                        ? `${table.label} still has ${openOrders(count).toLowerCase()}. Close anyway?`
-                        : `Close ${table.label}?`
-                    }
-                    body={
-                      count > 0
-                        ? "Its orders stay on the board. Diners can't add to this tab."
-                        : "The next party starts a new tab."
-                    }
-                    confirmLabel="Close table"
-                    dismissLabel="Keep open"
-                    action={closeTableAction}
-                    fields={{ sessionId: table.sessionId }}
+                  <CloseTableButton
+                    sessionId={table.sessionId}
+                    label={table.label}
+                    openOrderCount={count}
                   />
                 ) : (
-                  <ActionButton
-                    action={seatTableAction}
-                    fields={{ id: table.id }}
-                    variant="primary"
-                  >
-                    Seat <span className="sr-only">{table.label}</span>
-                  </ActionButton>
+                  <SeatButton tableId={table.id} label={table.label} />
                 )}
               </li>
             );

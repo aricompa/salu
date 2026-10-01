@@ -18,7 +18,10 @@ export const ACTIVE_STATUSES: readonly ActiveStatus[] = BOARD_COLUMNS.map((c) =>
  * One primary action per column. The state machine also allows accepted → ready
  * (skipping Preparing); the board keeps a single next step so a tap is never a guess.
  */
-export const NEXT_ACTION: Record<ActiveStatus, { to: OrderStatus; label: string }> = {
+export const NEXT_ACTION: Record<
+  ActiveStatus,
+  { to: "accepted" | "preparing" | "ready" | "served"; label: string }
+> = {
   submitted: { to: "accepted", label: "Accept" },
   accepted: { to: "preparing", label: "Start preparing" },
   preparing: { to: "ready", label: "Mark ready" },
@@ -66,4 +69,9 @@ export function averageServeMinutes(
     .map((o) => (Date.parse(o.served_at as string) - Date.parse(o.submitted_at)) / 60_000);
   if (spans.length === 0) return null;
   return Math.round(spans.reduce((a, b) => a + b, 0) / spans.length);
+}
+
+/** "No open orders", "1 open order", "2 open orders" (the Tables strip). */
+export function openOrders(n: number): string {
+  return n === 0 ? "No open orders" : `${n} open order${n === 1 ? "" : "s"}`;
 }
