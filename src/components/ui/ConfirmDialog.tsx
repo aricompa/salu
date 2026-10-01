@@ -15,6 +15,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  dismissLabel = "Cancel",
   action,
   fields,
   onDone,
@@ -26,6 +27,8 @@ export function ConfirmDialog({
   title: string;
   body: string;
   confirmLabel: string;
+  /** The button that closes without acting. Say "Keep order" when the action is a cancel. */
+  dismissLabel?: string;
   action: ButtonAction;
   fields: Record<string, string>;
   onDone?: () => void;
@@ -81,7 +84,7 @@ export function ConfirmDialog({
           )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="ghost" onClick={() => dialogRef.current?.close()}>
-              Cancel
+              {dismissLabel}
             </Button>
             <Button type="submit" loading={pending}>
               {confirmLabel}

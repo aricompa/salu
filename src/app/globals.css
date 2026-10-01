@@ -118,3 +118,14 @@
     opacity: 1;
   }
 }
+
+/* New-order pulse on the staff board (skipped under prefers-reduced-motion, see OrderCardFrame.tsx). */
+@keyframes order-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--salu-focus);
+  }
+}

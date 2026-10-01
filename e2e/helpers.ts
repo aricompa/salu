@@ -82,10 +82,11 @@ export async function createConfirmedStaff(
 
 // ---------------------------------------------------------------- REST setup for diner tests
 
-/** Signs up a staff user and confirms them through the Auth API; returns their access token. */
-export async function confirmedStaffToken(): Promise<string> {
+/** Signs up a staff user and confirms them through the Auth API; returns credentials and a token. */
+export async function confirmedStaff(): Promise<{ email: string; password: string; jwt: string }> {
   const email = uniqueEmail("owner");
-  await authPost("signup", { email, password: "correct-horse-battery" });
+  const password = "correct-horse-battery";
+  await authPost("signup", { email, password });
   const link = new URL(await confirmationLink(email));
   const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
     method: "POST",
@@ -93,7 +94,7 @@ export async function confirmedStaffToken(): Promise<string> {
     body: JSON.stringify({ type: "email", token_hash: link.searchParams.get("token_hash") }),
   });
   if (!res.ok) throw new Error(`verify failed: ${res.status} ${await res.text()}`);
-  return ((await res.json()) as { access_token: string }).access_token;
+  return { email, password, jwt: ((await res.json()) as { access_token: string }).access_token };
 }
 
 /** PostgREST call as the given user (RLS applies exactly as in the app). */
@@ -119,6 +120,8 @@ export async function rest<T = unknown>(
 
 export type DinerFixture = {
   ownerJwt: string;
+  ownerEmail: string;
+  ownerPassword: string;
   restaurantId: string;
   restaurantName: string;
   tables: Record<string, { id: string; token: string }>;
@@ -127,7 +130,8 @@ export type DinerFixture = {
 
 /** A restaurant with a small menu (one item sold out, one hidden category) and tables. */
 export async function createDinerFixture(): Promise<DinerFixture> {
-  const ownerJwt = await confirmedStaffToken();
+  const owner = await confirmedStaff();
+  const ownerJwt = owner.jwt;
   const restaurantName = "Casa Grande";
   const restaurantId = await rest<string>(ownerJwt, "rpc/create_restaurant", {
     method: "POST",
@@ -178,9 +182,51 @@ export async function createDinerFixture(): Promise<DinerFixture> {
   );
   return {
     ownerJwt,
+    ownerEmail: owner.email,
+    ownerPassword: owner.password,
     restaurantId,
     restaurantName,
     tables: Object.fromEntries(tables.map((t) => [t.label, { id: t.id, token: t.qr_token }])),
     items: Object.fromEntries(items.map((i) => [i.name, i.id])),
   };
+}
+
+/** The fixture owner's session as cookies for a browser context (the staff portal). */
+export async function ownerCookies(fx: DinerFixture) {
+  return (await staffSessionCookies(fx.ownerEmail, fx.ownerPassword)).map((c) => ({
+    ...c,
+    domain: "localhost",
+    path: "/",
+  }));
+}
+
+/**
+ * A diner on their own phone, through the API: anonymous sign-in, join_table (with a
+ * name if given) and place_order. The one place e2e diners get seated and order.
+ */
+export async function dinerPlacesOrder(
+  fx: DinerFixture,
+  tableLabel: string,
+  lines: Array<{ item: string; quantity?: number; notes?: string }>,
+  options: { name?: string; notes?: string } = {},
+): Promise<{ jwt: string; sessionId: string; orderId: string }> {
+  const session = (await authPost("signup", {})) as { access_token: string };
+  const jwt = session.access_token;
+  const [joined] = await rest<Array<{ session_id: string }>>(jwt, "rpc/join_table", {
+    method: "POST",
+    body: { p_qr_token: fx.tables[tableLabel].token, p_display_name: options.name ?? null },
+  });
+  const orderId = await rest<string>(jwt, "rpc/place_order", {
+    method: "POST",
+    body: {
+      p_session_id: joined.session_id,
+      p_items: lines.map((l) => ({
+        menu_item_id: fx.items[l.item],
+        quantity: l.quantity ?? 1,
+        notes: l.notes ?? null,
+      })),
+      p_notes: options.notes ?? null,
+    },
+  });
+  return { jwt, sessionId: joined.session_id, orderId };
 }
