@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import {
+  addUnseatedTable,
   PUBLISHABLE_KEY,
   SUPABASE_URL,
   TEST_CAPTCHA_TOKEN,
@@ -242,4 +243,33 @@ test("another diner's device receives no realtime changes for someone else's ord
   await page.waitForTimeout(3_000);
   expect(received).toEqual([]);
   await spy.removeAllChannels();
+});
+
+test("an item whose section was hidden after it went in the cart is named and removed", async ({
+  page,
+}) => {
+  await addUnseatedTable(fx, "E2");
+  await seatTable(fx, "E2");
+  await scanAndAdd(page, "E2", ["Tuna Crudo", "Grilled Salmon"]);
+  const starters = await rest<Array<{ id: string }>>(
+    fx.ownerJwt,
+    `menu_categories?restaurant_id=eq.${fx.restaurantId}&name=eq.Starters&select=id`,
+  );
+  const hide = (is_active: boolean) =>
+    rest(fx.ownerJwt, `menu_categories?id=eq.${starters[0].id}`, {
+      method: "PATCH",
+      body: { is_active },
+    });
+  await hide(false);
+  try {
+    await page.getByRole("button", { name: "Place order" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Tuna Crudo" })).toHaveText(
+      "Sorry, Tuna Crudo just sold out. We took it off your order.",
+    );
+    await expect(page.getByRole("listitem").filter({ hasText: "Tuna Crudo" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Place order" }).click();
+    await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+  } finally {
+    await hide(true);
+  }
 });
