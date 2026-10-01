@@ -30,12 +30,12 @@ export function Input({ label, hint, error, id, className, ...props }: InputProp
         {...props}
       />
       {hint && (
-        <p id={hintId} className="text-sm text-muted">
+        <p id={hintId} className="text-sm text-muted portal:text-base">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} className="text-sm text-danger">
+        <p id={errorId} className="text-sm text-danger portal:text-base">
           {error}
         </p>
       )}

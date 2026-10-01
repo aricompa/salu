@@ -183,10 +183,10 @@ test("a table closed by staff says so instead of opening a new tab", async ({ pa
   });
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "This table was closed." })).toContainText(
-    "This table was closed. Scan the code again to start a new tab.",
+    "This table was closed. To order again, ask your server to seat you.",
   );
   // A closed table must be seated again before it takes orders (Brief 04 prank protection).
-  await page.getByRole("link", { name: "Start a new tab" }).click();
+  await page.getByRole("link", { name: "Scan again" }).click();
   await expect(page.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible();
   await seatTable(fx, "A1");
   await page.getByRole("link", { name: "Scan again" }).click();

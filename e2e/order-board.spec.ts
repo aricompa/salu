@@ -179,7 +179,7 @@ test("a table takes orders only once staff seat it, and must be seated again aft
   await expect(
     diner.getByRole("alert").filter({ hasText: "This table was closed." }),
   ).toBeVisible();
-  await diner.getByRole("link", { name: "Start a new tab" }).click();
+  await diner.getByRole("link", { name: "Scan again" }).click();
   await expect(diner.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible();
   await phone.close();
   await context.close();

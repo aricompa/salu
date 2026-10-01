@@ -1,5 +1,7 @@
 # PM review: Brief 04 (live order board and Phase 1 exit)
 
+> **Status: rulings given 2026-09-30, not yet PM-ACCEPTED.** Ari: "agree with recommendations" for open decision 14 and PM items 6 to 10 (section 7), applied on this branch (see `CLAUDE.md` section 1). Acceptance still needs the merge, `supabase db push`, the Reset password template, and the hosted steps in section 5. Desk after the rulings: Vitest 210/210, pgTAP 107/107, Playwright on a production build 30 passed + 3 on-request probes skipped; first-load JS 135.9 to 144.6 KB by the new probe (`e2e/first-load-js.spec.ts`).
+
 **Tracked:** yes, committed on the Brief 04 branch with its PR. When Ari rules, add a status banner under this title; don't edit the body.
 
 ## 1. Header

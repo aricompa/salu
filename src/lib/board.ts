@@ -53,12 +53,16 @@ export type Participant = Pick<
 >;
 
 /**
- * Board labels for one table session: the diner's name, or "Guest N" where N is their
- * position by joined_at (PRD D2).
+ * Board labels for one table session: the diner's name, or "Guest N" where N counts only
+ * the diners without a name, by joined_at (PRD D2; ruled 2026-09-30, so the second guest
+ * who skips is always "Guest 2").
  */
 export function dinerLabels(participants: readonly Participant[]): Map<string, string> {
   const ordered = [...participants].sort((a, b) => a.joined_at.localeCompare(b.joined_at));
-  return new Map(ordered.map((p, i) => [p.user_id, p.display_name ?? `Guest ${i + 1}`]));
+  let guests = 0;
+  return new Map(
+    ordered.map((p) => [p.user_id, p.display_name ?? `Guest ${(guests += 1)}`] as const),
+  );
 }
 
 /**

@@ -55,7 +55,7 @@ export function OrderSettingsForm({
             />
             Staff seat tables before diners can order
           </label>
-          <p id="require-staff-open-hint" className="text-sm text-muted">
+          <p id="require-staff-open-hint" className="text-sm text-muted portal:text-base">
             A table&apos;s code takes orders only after someone taps Seat on the Orders page, so a
             photo of the code can&apos;t be used from home.
           </p>

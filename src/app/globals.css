@@ -82,6 +82,10 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Staff portal: field hints and errors at 16px, PRD 5.4's body minimum (ruled 2026-09-30).
+   Diner pages keep 14px hints. The portal layout marks its tree with data-portal. */
+@custom-variant portal (&:where([data-portal] *));
+
 @layer base {
   body {
     @apply bg-surface font-sans text-text antialiased;

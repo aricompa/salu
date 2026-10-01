@@ -156,7 +156,7 @@ select throws_ok($$ select public.place_order((select v::uuid from ctx where k =
                     jsonb_build_array(jsonb_build_object('menu_item_id', (select v from ctx where k = 'item_ok'), 'quantity', 1))) $$,
   'P0001', null, 'closed session rejects new orders');
 select isnt((select session_id::text from public.join_table((select v from ctx where k = 'token'))),
-            (select v from ctx where k = 'session'), 'scanning after close opens a new session');
+            (select v from ctx where k = 'session'), 'after close, a rescan joins the new session staff seated, not the closed one');
 
 set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated","is_anonymous":false}';
 select lives_ok($$ select public.rotate_table_qr((select id from dining_tables where label = 'A4')) $$,

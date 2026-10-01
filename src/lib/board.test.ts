@@ -26,13 +26,13 @@ describe("ticketAge", () => {
 });
 
 describe("dinerLabels", () => {
-  it("uses the name, or Guest N by join order", () => {
+  it("uses the name, or Guest N counting only unnamed diners by join order", () => {
     const labels = dinerLabels([
       { user_id: "c", display_name: null, joined_at: "2026-09-30T18:05:00Z" },
       { user_id: "a", display_name: "Ari", joined_at: "2026-09-30T18:00:00Z" },
       { user_id: "b", display_name: null, joined_at: "2026-09-30T18:01:00Z" },
     ]);
-    expect(Object.fromEntries(labels)).toEqual({ a: "Ari", b: "Guest 2", c: "Guest 3" });
+    expect(Object.fromEntries(labels)).toEqual({ a: "Ari", b: "Guest 1", c: "Guest 2" });
   });
 });
 
