@@ -124,3 +124,19 @@ test("the new-password page is for signed-in staff only", async ({ browser }) =>
 
   await Promise.all([asVisitor.context().close(), dinerContext.close(), staffContext.close()]);
 });
+
+test("an action header doesn't get a signed-out visitor into the portal", async ({ request }) => {
+  // The proxy lets Server Action requests through to check the session themselves; a page
+  // request carrying the header must still be sent to /login by the portal itself.
+  for (const path of ["/restaurant/dashboard", "/restaurant/orders"]) {
+    const res = await request.get(path, { headers: { "next-action": "0" }, maxRedirects: 0 });
+    expect(res.status(), path).toBeGreaterThanOrEqual(300);
+    expect(res.status(), path).toBeLessThan(400);
+    expect(res.headers()["location"], path).toMatch(/\/login$/);
+  }
+  const post = await request.post("/restaurant/orders", {
+    headers: { "next-action": "0" },
+    maxRedirects: 0,
+  });
+  expect(post.status()).not.toBe(200);
+});

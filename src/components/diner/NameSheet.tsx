@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore, useTransition, type FormEvent } from "r
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Sheet } from "@/components/ui/Sheet";
-import { ERROR_COPY, type ActionResult } from "@/lib/errors";
+import { ERROR_COPY, isConnectionFailure, type ActionResult } from "@/lib/errors";
 
 const askedKey = (sessionId: string) => `salu.name-asked.${sessionId}`;
 
@@ -61,8 +61,9 @@ export function NameSheet({
         const result = await save(name);
         if (result.ok) finish();
         else setError(result.error.message);
-      } catch {
+      } catch (err) {
         // Offline or unreachable: keep the sheet open with a message, not the error page.
+        if (!isConnectionFailure(err)) throw err;
         setError(ERROR_COPY.connection);
       }
     });

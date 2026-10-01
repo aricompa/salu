@@ -303,3 +303,16 @@ test("closing a table a colleague already closed says so instead of confirming",
   await expect(page.getByText("Closed H1.")).toHaveCount(0);
   await context.close();
 });
+
+test("a board whose session has ended sends staff to sign in, not to check the Wi-Fi", async ({
+  browser,
+}) => {
+  await dinerPlacesOrder(fx, "D1", [{ item: "Burrata" }], { name: "Expiry" });
+  const { context, page } = await openBoard(browser, { realtime: false });
+  await expect(page.getByRole("button", { name: "Accept D1, Expiry" })).toBeVisible();
+  await context.clearCookies();
+  await page.getByRole("button", { name: "Accept D1, Expiry" }).click();
+  await expect(page).toHaveURL(/\/login$/, { timeout: 10_000 });
+  await expect(page.getByText("We couldn't reach Salu.")).toHaveCount(0);
+  await context.close();
+});

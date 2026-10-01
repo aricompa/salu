@@ -11,9 +11,9 @@
 
 | Check | Result |
 |---|---|
-| Vitest | 209/209, 32 files (one earlier run failed: see finding 10) |
+| Vitest | 210/210, 32 files (one earlier run failed: see finding 10) |
 | pgTAP | 107/107, 5 files (43 security + 25 portal + 10 checks + 21 seating + 8 hidden items) |
-| Playwright, production build (`CI=1`) | 28 passed, 2 skipped (the long-service and latency probes, which run only on request) |
+| Playwright, production build (`CI=1`) | 30 passed, 2 skipped (the long-service and latency probes, which run only on request) |
 | `supabase db lint` | no schema errors |
 | gitleaks (git history) | 57 commits, no leaks |
 | `next build` | every `/t/[token]` and `/restaurant` route dynamic |
@@ -56,14 +56,15 @@ Deliberately not built: table view toggle, late add-on badges, table requests, s
 8. **Bug found and fixed in this brief:** after "Back to sign in", a second password-reset request showed the previous answer instead of the form. Regression test added and falsified.
 9. **The pre-PR spec audit found no security divergences, and seven others, now handled** (`CLAUDE.md` build calls (bl) to (bs)). Fixed: a tap while the connection is down threw to the error page and replaced the board (it now says "We couldn't reach Salu…" where you tapped); the name-sheet action ran zod after the session lookup; board text under 18 px; a hand-written row type; a stale Close that toasted "Closed A4." for a no-op (**I logged that as harmless in build call (ag); that was wrong**: it now says "That's no longer here."); an untested fail-closed guard (now tested and falsified). Kept and logged: Cancel is a visible button behind a confirmation, not PRD P4's overflow menu.
 10. **A flaky test, reported:** one full `npm run check` failed on the Brief 02 `ConfirmDialog` render test ("expected close to be called 2 times, but got 1"). The test asserted the dialog had closed the instant the confirm click returned, while the dialog closes once the action answers; this brief's connection handling added one more await. The test now waits for the close (assertion unchanged); two full runs and five runs of that file are green since.
+11. **Correction to my own audit fix.** I first made every failed tap read "We couldn't reach Salu…". That was wrong for an ended session: staff would have been told to check the Wi-Fi when they needed to sign in again. Now only a failed fetch or an offline device reads that way; a Server Action whose session has ended sends staff to `/login` (the proxy lets action requests through, and every portal action re-checks the session itself). A page request with a forged action header still lands on `/login`. Both have e2e tests.
 
 ## 5. Acceptance surface
 
 Desk (any machine with local Supabase; each verified on this branch before writing it down):
 
 ```bash
-npm run db:reset && npm run check          # [Vitest 209/209, pgTAP 107/107]
-npm run build && CI=1 npx playwright test  # [28 passed, 2 skipped]
+npm run db:reset && npm run check          # [Vitest 210/210, pgTAP 107/107]
+npm run build && CI=1 npx playwright test  # [30 passed, 2 skipped]
 npm run build && CI=1 SALU_LATENCY_PROBE=1 npx playwright test e2e/latency.spec.ts
                                            # [1 passed; prints LATENCY {..."p95":<2000...}]
 ```
@@ -96,6 +97,7 @@ Hosted, after merge and `supabase db push` (yours):
 | a second reset request shows the form | fresh-round fix removed | render test "can send another after going back" | byte-identical |
 | a restaurant with no settings row requires seating | `coalesce(..., true)` flipped to `false` | seating 21 | byte-identical, `b518836e58805945` |
 | a dropped connection shows next to the button | `.catch` removed from `ActionButton` | render test "shows next to an ActionButton instead of throwing" | byte-identical |
+| an ended session goes to sign-in, not "check the connection" | (before the fix) proxy redirected action requests | e2e "a board whose session has ended sends staff to sign in" | n/a: the test was written first and failed, then the fix |
 
 ## 7. PM items
 
@@ -114,7 +116,7 @@ Hosted, after merge and `supabase db push` (yours):
 
 ```
  Test Files  32 passed (32)
-      Tests  209 passed (209)
+      Tests  210 passed (210)
 /Users/ari/salu/supabase/tests/database/phase1_db_checks.test.sql ..... ok
 /Users/ari/salu/supabase/tests/database/phase1_hidden_items.test.sql .. ok
 /Users/ari/salu/supabase/tests/database/phase1_portal.test.sql ........ ok
@@ -123,5 +125,5 @@ Hosted, after merge and `supabase db push` (yours):
 All tests successful.
 Files=5, Tests=107,  0 wallclock secs
 Result: PASS
-CI=1 npx playwright test: 2 skipped, 28 passed (36.7s)
+CI=1 npx playwright test: 2 skipped, 30 passed (37.3s)
 ```

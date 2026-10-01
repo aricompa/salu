@@ -36,7 +36,16 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
 
-  if (request.nextUrl.pathname.startsWith("/restaurant") && !isStaffClaims(claims)) {
+  // Server Actions are left to check for themselves: each one re-verifies with getClaims()
+  // (requireMembership) and redirect()s to /login in a way the client router follows. A
+  // redirect here would hand the action a sign-in page, which the client can only report
+  // as a failed request, so an ended session would read as a lost connection.
+  const isServerAction = request.headers.has("next-action");
+  if (
+    request.nextUrl.pathname.startsWith("/restaurant") &&
+    !isStaffClaims(claims) &&
+    !isServerAction
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

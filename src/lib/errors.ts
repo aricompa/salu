@@ -101,6 +101,15 @@ export function toAppError(
   return { code, message: ERROR_COPY[code] };
 }
 
+/**
+ * A call that never reached the server: the browser's fetch fails with a TypeError, or
+ * the device says it's offline. Anything else is a real error and should surface as one.
+ */
+export function isConnectionFailure(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return err instanceof TypeError;
+}
+
 export function fail(code: AppErrorCode): { ok: false; error: AppError } {
   return { ok: false, error: { code, message: ERROR_COPY[code] } };
 }
