@@ -17,6 +17,7 @@ export type FormResult<T, F extends string> =
 
 export type AppErrorCode =
   | "invalid_table"
+  | "table_not_open"
   | "item_unavailable"
   | "session_closed"
   | "rate_limited"
@@ -43,6 +44,7 @@ export type AppError = { code: AppErrorCode; message: string };
 /** Friendly copy per error (PRD 5.7: short, warm, plain, says what to do next). */
 export const ERROR_COPY: Record<AppErrorCode, string> = {
   invalid_table: "This table code isn't active. Ask your server for help.",
+  table_not_open: "Your table isn't open yet. Ask your server to seat you, then scan again.",
   item_unavailable: "Sorry, something in your order just sold out. We took it off your order.",
   session_closed: "This table was closed. Scan the code again to start a new tab.",
   rate_limited: "Slow down a moment, then try again.",
@@ -68,6 +70,7 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
 /** Hints raised by the database (`raise ... using hint = '<code>'`). */
 const DB_HINTS = new Set<AppErrorCode>([
   "invalid_table",
+  "table_not_open",
   "item_unavailable",
   "session_closed",
   "rate_limited",

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ERROR_COPY, fail, toAppError, type AppErrorCode } from "./errors";
 
-// Every hint the Phase 1 migration raises. CLAUDE.md lists the first five.
+// Every hint the Phase 1 migrations raise. CLAUDE.md lists the first five.
 const DB_HINTS: AppErrorCode[] = [
   "invalid_table",
+  "table_not_open",
   "item_unavailable",
   "session_closed",
   "rate_limited",

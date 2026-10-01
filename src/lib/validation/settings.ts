@@ -24,6 +24,8 @@ export const restaurantProfileSchema = z.object({
 export const orderSettingsSchema = z.object({
   editWindowMins: intField(0, 30, "Use a whole number of minutes from 0 to 30."),
   additionCutoffMins: intField(0, 240, "Use a whole number of minutes from 0 to 240."),
+  /** A checkbox: "on" when ticked, absent (sent as "") when not. */
+  requireStaffOpen: z.enum(["on", ""]).transform((v) => v === "on"),
 });
 
 export type RestaurantProfileInput = z.output<typeof restaurantProfileSchema>;

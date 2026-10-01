@@ -6,7 +6,7 @@ import { qrTokenSchema } from "@/lib/validation/diner";
 /**
  * The QR code's URL. A scan joins the table (join_table is the only diner entry point,
  * rule 3), remembers it for this token's pages, and opens the menu. Signed-out devices
- * go through the welcome page first. This GET has side effects, so nothing links here
+ * go through the welcome page first; a table staff haven't seated yet goes to not-seated. This GET has side effects, so nothing links here
  * with a prefetching <Link>.
  */
 export async function GET(
@@ -23,7 +23,9 @@ export async function GET(
     redirect(
       joined.error.code === "invalid_table"
         ? `/t/${token}/unavailable`
-        : `/t/${token}/welcome?retry=1`,
+        : joined.error.code === "table_not_open"
+          ? `/t/${token}/not-seated`
+          : `/t/${token}/welcome?retry=1`,
     );
   }
   await rememberTable(token, joined.data);

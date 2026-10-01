@@ -7,10 +7,12 @@ import { updateOrderSettingsAction, type OrderSettingsFormResult } from "./actio
 export function OrderSettingsForm({
   editWindowMins,
   additionCutoffMins,
+  requireStaffOpen,
   disabled,
 }: {
   editWindowMins: number;
   additionCutoffMins: number;
+  requireStaffOpen: boolean;
   disabled: boolean;
 }) {
   const [state, action, pending] = useActionState(
@@ -40,6 +42,24 @@ export function OrderSettingsForm({
           defaultValue={failure?.values?.additionCutoffMins ?? String(additionCutoffMins)}
           error={failure?.fieldErrors?.additionCutoffMins}
         />
+        <div className="flex flex-col gap-1.5">
+          <label className="flex min-h-11 items-center gap-3 font-medium">
+            <input
+              type="checkbox"
+              name="requireStaffOpen"
+              aria-describedby="require-staff-open-hint"
+              className="size-6 accent-brand"
+              defaultChecked={
+                failure?.values ? failure.values.requireStaffOpen === "on" : requireStaffOpen
+              }
+            />
+            Staff seat tables before diners can order
+          </label>
+          <p id="require-staff-open-hint" className="text-sm text-muted">
+            A table&apos;s code takes orders only after someone taps Seat on the Orders page, so a
+            photo of the code can&apos;t be used from home.
+          </p>
+        </div>
       </fieldset>
       {!disabled && (
         <div className="flex flex-wrap items-center gap-3">

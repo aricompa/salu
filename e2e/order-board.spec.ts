@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import {
+  addUnseatedTable,
   createDinerFixture,
   dinerPlacesOrder,
   ownerCookies,
@@ -115,5 +116,67 @@ test("a stale action says the order already moved on", async ({ browser }) => {
     "That order already moved on. Refresh to see where it is.",
   );
   expect(await storedStatus(orderId)).toBe("cancelled");
+  await context.close();
+});
+
+test("a table takes orders only once staff seat it, and must be seated again after closing", async ({
+  browser,
+}) => {
+  const { token } = await addUnseatedTable(fx, "E1");
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const diner = await phone.newPage();
+  await diner.goto(`/t/${token}`);
+  await expect(diner.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(diner.getByText("Ask your server to seat you, then scan again.")).toBeVisible();
+
+  const { context, page } = await openBoard(browser);
+  const tile = page
+    .getByRole("region", { name: "Tables" })
+    .getByRole("listitem")
+    .filter({ has: page.getByText("E1", { exact: true }) });
+  await expect(tile).toContainText("Not seated");
+  await page.getByRole("button", { name: "Seat E1" }).click();
+  await expect(tile).toContainText("Seated · No open orders");
+  await expect(page.getByRole("status").filter({ hasText: "Live" })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // The same phone scans again and orders.
+  await diner.getByRole("link", { name: "Scan again" }).click();
+  await expect(diner).toHaveURL(/\/menu$/);
+  for (let i = 0; i < 2; i++) {
+    await diner.getByRole("button", { name: /Burrata/ }).click();
+    await diner
+      .getByRole("dialog", { name: "Burrata" })
+      .getByRole("button", { name: /^Add ·/ })
+      .click();
+    await expect(diner.getByRole("dialog", { name: "Burrata" })).toBeHidden();
+    if (i === 0) {
+      await diner.getByRole("link", { name: /View order/ }).click();
+      await diner.getByRole("button", { name: "Place order" }).click();
+      await expect(diner).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
+      await expect(column(page, "New").getByRole("article", { name: "E1" })).toBeVisible();
+      await expect(tile).toContainText("Seated · 1 open order");
+      await diner.getByRole("link", { name: "Order more" }).click();
+    }
+  }
+  await diner.getByRole("link", { name: /View order/ }).click();
+
+  // Staff close the table while the diner has a second order in the cart.
+  await page.getByRole("button", { name: "Close table E1" }).click();
+  const confirm = page.getByRole("dialog", { name: "E1 still has 1 open order. Close anyway?" });
+  await confirm.getByRole("button", { name: "Close table" }).click();
+  await expect(tile).toContainText("Not seated");
+  await expect(column(page, "New").getByRole("article", { name: "E1" })).toBeVisible();
+
+  await diner.getByRole("button", { name: "Place order" }).click();
+  await expect(
+    diner.getByRole("alert").filter({ hasText: "This table was closed." }),
+  ).toBeVisible();
+  await diner.getByRole("link", { name: "Start a new tab" }).click();
+  await expect(diner.getByRole("heading", { name: "Your table isn't open yet" })).toBeVisible();
+  await phone.close();
   await context.close();
 });

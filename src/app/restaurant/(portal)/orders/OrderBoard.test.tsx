@@ -8,6 +8,7 @@ vi.mock("@/lib/realtime", () => ({ subscribeToRestaurantOrders: vi.fn(() => () =
 const { OrderBoard } = await import("./OrderBoard");
 
 const order = (over: Partial<BoardOrder> & Pick<BoardOrder, "id" | "status">): BoardOrder => ({
+  sessionId: "s1",
   tableLabel: "A4",
   dinerLabel: "Guest 1",
   notes: null,

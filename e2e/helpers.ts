@@ -128,14 +128,18 @@ export type DinerFixture = {
   items: Record<string, string>;
 };
 
-/** A restaurant with a small menu (one item sold out, one hidden category) and tables. */
+/** A restaurant with a small menu (one item sold out, one hidden category) and seated tables. */
 export async function createDinerFixture(): Promise<DinerFixture> {
   const owner = await confirmedStaff();
   const ownerJwt = owner.jwt;
   const restaurantName = "Casa Grande";
   const restaurantId = await rest<string>(ownerJwt, "rpc/create_restaurant", {
     method: "POST",
-    body: { p_name: restaurantName, p_slug: `casa-grande-${Date.now()}` },
+    body: {
+      p_name: restaurantName,
+      // Spec files start fixtures in parallel workers; the time alone can collide.
+      p_slug: `casa-grande-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    },
   });
   const categories = await rest<Array<{ id: string; name: string }>>(ownerJwt, "menu_categories", {
     method: "POST",
@@ -180,6 +184,13 @@ export async function createDinerFixture(): Promise<DinerFixture> {
       })),
     },
   );
+  // Staff seat every table, so diners can join (prank protection is on by default).
+  for (const table of tables) {
+    await rest(ownerJwt, "rpc/open_table_session", {
+      method: "POST",
+      body: { p_table_id: table.id },
+    });
+  }
   return {
     ownerJwt,
     ownerEmail: owner.email,
@@ -229,4 +240,27 @@ export async function dinerPlacesOrder(
     },
   });
   return { jwt, sessionId: joined.session_id, orderId };
+}
+
+/** A new table staff haven't seated yet. Added to the fixture so diner helpers can use it. */
+export async function addUnseatedTable(fx: DinerFixture, label: string) {
+  const [table] = await rest<Array<{ id: string; qr_token: string }>>(
+    fx.ownerJwt,
+    "dining_tables?select=id,qr_token",
+    {
+      method: "POST",
+      prefer: "return=representation",
+      body: { restaurant_id: fx.restaurantId, label },
+    },
+  );
+  fx.tables[label] = { id: table.id, token: table.qr_token };
+  return fx.tables[label];
+}
+
+/** Staff seat a table through the RPC (what the board's Seat button calls). */
+export async function seatTable(fx: DinerFixture, label: string): Promise<string> {
+  return rest<string>(fx.ownerJwt, "rpc/open_table_session", {
+    method: "POST",
+    body: { p_table_id: fx.tables[label].id },
+  });
 }

@@ -185,6 +185,15 @@ test("owner changes order timers and the time zone", async ({ page }) => {
   await page.reload();
   await expect(page.getByLabel("Edit window (minutes)")).toHaveValue("10");
 
+  // Seating before ordering is on by default; the owner can turn it off.
+  const seating = page.getByRole("checkbox", { name: "Staff seat tables before diners can order" });
+  await expect(seating).toBeChecked();
+  await seating.uncheck();
+  await page.getByRole("button", { name: "Save order settings" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await page.reload();
+  await expect(seating).not.toBeChecked();
+
   // Time zone moves the kitchen clock in the header.
   const tokyo = (offsetMin: number) =>
     new Intl.DateTimeFormat("en-US", {

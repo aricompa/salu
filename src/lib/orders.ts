@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type BoardOrder = {
   id: string;
+  sessionId: string;
   status: OrderStatus;
   tableLabel: string;
   dinerLabel: string;
@@ -67,6 +68,7 @@ export async function getBoardOrders(
 
   const toBoard = (o: (typeof active.data)[number]): BoardOrder => ({
     id: o.id,
+    sessionId: o.session_id,
     status: o.status,
     tableLabel: o.table_sessions?.dining_tables?.label ?? "Table",
     dinerLabel: (o.placed_by && labels.get(o.session_id)?.get(o.placed_by)) || "Guest",

@@ -8,7 +8,10 @@ import { fieldErrorsOf } from "@/lib/validation/fields";
 import { orderSettingsSchema, restaurantProfileSchema } from "@/lib/validation/settings";
 
 export type ProfileFormResult = FormResult<null, "name" | "timezone">;
-export type OrderSettingsFormResult = FormResult<null, "editWindowMins" | "additionCutoffMins">;
+export type OrderSettingsFormResult = FormResult<
+  null,
+  "editWindowMins" | "additionCutoffMins" | "requireStaffOpen"
+>;
 
 export async function updateProfileAction(
   _prev: ProfileFormResult,
@@ -45,6 +48,7 @@ export async function updateOrderSettingsAction(
   const values = {
     editWindowMins: String(formData.get("editWindowMins") ?? ""),
     additionCutoffMins: String(formData.get("additionCutoffMins") ?? ""),
+    requireStaffOpen: String(formData.get("requireStaffOpen") ?? ""),
   };
   const parsed = orderSettingsSchema.safeParse(values);
   if (!parsed.success)

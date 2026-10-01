@@ -44,6 +44,8 @@ select lives_ok($$ insert into dining_tables (restaurant_id, label, capacity) se
 select is((select char_length(qr_token) from dining_tables where label = 'A4'), 32,
   'qr_token is generated server-side (32 hex chars)');
 insert into ctx select 'token', qr_token from dining_tables where label = 'A4';
+-- staff seat the table before diners can join (Brief 04 prank protection, on by default)
+insert into ctx select 'seated', public.open_table_session(id)::text from dining_tables where label = 'A4';
 select throws_ok($$ insert into dining_tables (restaurant_id, label, qr_token) select v::uuid, 'B1', 'chosen' from ctx where k = 'rest_a' $$,
   '42501', null, 'clients cannot choose a qr_token');
 
@@ -145,6 +147,8 @@ select throws_ok($$ delete from dining_tables where label = 'A4' $$, '23503', nu
 
 select lives_ok($$ select public.close_table_session((select v::uuid from ctx where k = 'session')) $$,
   'owner can close the table session');
+-- staff seat the table again for the next party (Brief 04: a closed table must be seated again)
+insert into ctx select 'reseated', public.open_table_session(id)::text from dining_tables where label = 'A4';
 
 -- diner 1 tries to keep ordering on the closed session
 set local request.jwt.claims to '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated","is_anonymous":true}';

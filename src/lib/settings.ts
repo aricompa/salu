@@ -11,6 +11,7 @@ export type RestaurantSettings = {
   currency: string;
   editWindowMins: number;
   additionCutoffMins: number;
+  requireStaffOpen: boolean;
 };
 
 export async function getSettings(restaurantId: string): Promise<RestaurantSettings> {
@@ -23,7 +24,7 @@ export async function getSettings(restaurantId: string): Promise<RestaurantSetti
       .single(),
     supabase
       .from("restaurant_settings")
-      .select("order_edit_window_mins, order_addition_cutoff_mins")
+      .select("order_edit_window_mins, order_addition_cutoff_mins, require_staff_open")
       .eq("restaurant_id", restaurantId)
       .single(),
   ]);
@@ -33,6 +34,7 @@ export async function getSettings(restaurantId: string): Promise<RestaurantSetti
     ...restaurant.data,
     editWindowMins: settings.data.order_edit_window_mins,
     additionCutoffMins: settings.data.order_addition_cutoff_mins,
+    requireStaffOpen: settings.data.require_staff_open,
   };
 }
 
@@ -61,6 +63,7 @@ export async function updateOrderSettings(
       .update({
         order_edit_window_mins: input.editWindowMins,
         order_addition_cutoff_mins: input.additionCutoffMins,
+        require_staff_open: input.requireStaffOpen,
       })
       .eq("restaurant_id", restaurantId)
       .select("restaurant_id"),

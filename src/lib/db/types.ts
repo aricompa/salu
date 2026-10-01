@@ -293,18 +293,21 @@ export type Database = {
         Row: {
           order_addition_cutoff_mins: number;
           order_edit_window_mins: number;
+          require_staff_open: boolean;
           restaurant_id: string;
           updated_at: string;
         };
         Insert: {
           order_addition_cutoff_mins?: number;
           order_edit_window_mins?: number;
+          require_staff_open?: boolean;
           restaurant_id: string;
           updated_at?: string;
         };
         Update: {
           order_addition_cutoff_mins?: number;
           order_edit_window_mins?: number;
+          require_staff_open?: boolean;
           restaurant_id?: string;
           updated_at?: string;
         };
@@ -429,6 +432,7 @@ export type Database = {
           table_label: string;
         }[];
       };
+      open_table_session: { Args: { p_table_id: string }; Returns: string };
       place_order: {
         Args: { p_items: Json; p_notes?: string; p_session_id: string };
         Returns: string;
