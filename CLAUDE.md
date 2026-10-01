@@ -61,13 +61,14 @@ Dated, append-only, newest at the bottom. Format: `**YYYY-MM-DD — ruling.** Wh
 - **2026-09-30 — Prank protection: staff seat the table before it takes orders (PRD Q3, pulled from Phase 2 into Brief 04), on by default.** Ari raised photographed QR codes used to order from home. What stops that is proof of presence, not identity. Consequence: a restaurant setting `require_staff_open` (default on, owners and managers can turn it off); a member-only `open_table_session` RPC behind a "Seat" button on the board; `join_table` refuses a table with no open session while the setting is on (hint `table_not_open`), and the diner is told to ask their server. Older pgTAP fixtures seat tables first, with no assertion changed. Rejected: diner sign-in (a prankster can sign in too; friction for every diner; reverses invariant 2), geolocation (prompt, spoofable, blocked by our Permissions-Policy), a restaurant Wi-Fi check (diners use cellular), flagging first orders only (pranks still reach the board). Phase 3's card-on-file adds a cost to pranking later.
 - **2026-09-30 — PRD D10: a diner's open page learns a table closed on their next action, not live.** Ari chose the recommendation: no `table_sessions` in the realtime publication. Rejected: a second live subscription on diner pages.
 - **2026-09-30 — Diners don't see "Ready"; their timeline is Sent → Accepted → Preparing → Served.** Ari: diners gain nothing from knowing food is waiting at the pass; Ready stays on the staff board as the pickup trigger. Consequence: the diner status page shows an order in `ready` as Preparing (current step), drops the "Ready. It's coming to your table." copy, and the Brief 03 e2e changes to expect Preparing after a staff "ready"; the database state machine and the board are unchanged, so no migration. The PRD's D6 timeline and 5.7 "Ready" copy need Ari's edit. Rejected: removing `ready` from the state machine (staff need it).
+- **2026-09-30 — Brief 04 go given.** Ari, after reading the handoff: "lets keep going with salu, read handoff and lets rip". Consequence: tasks 1 to 10 are built in order on `phase-1/brief-04-order-board`, one commit each. Rejected: asking again for the literal word "go" (the handoff's only open step was the go).
 
 ## 2. What this app is
 
 Salu is a mobile-first, self-serve dining platform. A diner scans the QR code on their table, browses the menu, orders, and (from Phase 3) pays from their phone with no app download and no staff interaction. Restaurants manage menus, tables, QR codes and a live order board in a web portal. The failure mode it exists to prevent: a diner who wants to order and cannot, or an order that reaches the kitchen with a price the diner set.
 
 **Current phase:** Phase 1, "walking skeleton": restaurant portal plus QR scan, menu, order, and a live staff order board. No payments yet.
-**Active brief:** `docs/phase-1/BRIEF-04-order-board.md` (drafted 2026-09-30; rulings given; awaiting Ari's go). Do the active brief only. Don't start the next brief until Ari merges the current PR.
+**Active brief:** `docs/phase-1/BRIEF-04-order-board.md` (drafted 2026-09-30; rulings given; go given 2026-09-30; in build). Do the active brief only. Don't start the next brief until Ari merges the current PR.
 
 Source of truth, in priority order:
 1. This file (the rules in section 4 are not negotiable)
@@ -225,7 +226,7 @@ Current state only. History is in section 1.
 
 **Stream: Brief 03** — `MERGED @ e491a8f` (PR #4, 2026-09-30 UTC); CI on `main` green (run 36662871657); production deploy green. Acceptance run on a real phone passed for scan, order and live status (2026-09-30); the rotated-code check was not reported. Gate: `PM-ACCEPTED` 2026-09-30. Branch `phase-1/brief-03-diner` can be deleted.
 
-**Stream: Brief 04** — `phase-1/brief-04-order-board @ <see git log -1>`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` (only worktree) · committed and pushed; nothing uncommitted; docs-only commits since `main` (acceptance records, the brief, rulings) · desk (2026-09-30, this branch): Vitest 161/161 (22 files), pgTAP 78/78, format clean; `main @ e491a8f` CI green (run 36662871657), production deploy green · gate **OPEN**: brief written and all rulings given (decisions 11 and 12, D10, prank protection, diner timeline without Ready); **waiting for Ari's "go"** before any code.
+**Stream: Brief 04** — `phase-1/brief-04-order-board @ <see git log -1>`, cut from `main @ e491a8f` · worktree `/Users/ari/salu` (only worktree) · committed and pushed; nothing uncommitted; docs-only commits since `main` (acceptance records, the brief, rulings) · desk (2026-09-30, this branch): Vitest 161/161 (22 files), pgTAP 78/78, format clean; `main @ e491a8f` CI green (run 36662871657), production deploy green · gate **OPEN**: go given 2026-09-30; building task 1 (orders board).
 
 Session closed 2026-09-30 (Ari: "calling it a night").
 
