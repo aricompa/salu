@@ -1,3 +1,4 @@
+import type { Tables } from "@/lib/db/types";
 import type { OrderStatus } from "@/lib/order-status";
 
 /** Order board pure helpers (PRD P4). The data comes from src/lib/orders.ts. */
@@ -46,7 +47,10 @@ export function ticketAge(
   return { minutes, tone: "neutral", text: minutes === 0 ? "Just now" : `${minutes} min` };
 }
 
-export type Participant = { user_id: string; display_name: string | null; joined_at: string };
+export type Participant = Pick<
+  Tables<"session_participants">,
+  "user_id" | "display_name" | "joined_at"
+>;
 
 /**
  * Board labels for one table session: the diner's name, or "Guest N" where N is their

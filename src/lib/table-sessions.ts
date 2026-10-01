@@ -1,5 +1,5 @@
 import "server-only";
-import { toAppError, type ActionResult } from "@/lib/errors";
+import { fail, toAppError, type ActionResult } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 
 export type SeatingTable = { id: string; label: string; sessionId: string | null };
@@ -44,6 +44,14 @@ export async function seatTable(tableId: string): Promise<ActionResult<{ session
  */
 export async function closeTableSession(sessionId: string): Promise<ActionResult<null>> {
   const supabase = await createClient();
+  // close_table_session does nothing to a session that's already closed, and says nothing:
+  // a tablet that missed a colleague's close would report "Closed A4." for a no-op.
+  const { data: current } = await supabase
+    .from("table_sessions")
+    .select("status")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (current?.status !== "open") return fail("not_found");
   const { error } = await supabase.rpc("close_table_session", { p_session_id: sessionId });
   if (error) return { ok: false, error: toAppError(error) };
   return { ok: true, data: null };

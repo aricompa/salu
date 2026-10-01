@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useRef } from "react";
-import type { ActionResult } from "@/lib/errors";
+import { fail, type ActionResult } from "@/lib/errors";
 import type { ButtonAction } from "./ActionButton";
 import { Button, type ButtonProps } from "./Button";
 
@@ -40,7 +40,8 @@ export function ConfirmDialog({
   const bodyId = useId();
   const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
     async (prev, formData) => {
-      const result = await action(prev, formData);
+      // A dropped connection rejects the call: say so in the dialog (see ActionButton).
+      const result = await action(prev, formData).catch(() => fail("connection"));
       if (result?.ok) onDone?.();
       return result;
     },

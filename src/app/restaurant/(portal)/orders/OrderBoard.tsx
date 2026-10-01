@@ -23,7 +23,7 @@ function OrderCard({ order }: { order: BoardOrder }) {
   const who = `${order.tableLabel}, ${order.dinerLabel}`;
   return (
     <OrderCardFrame id={order.id} labelledBy={titleId} waiting={status === "submitted"}>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 id={titleId} className="text-3xl leading-tight font-bold">
             {order.tableLabel}

@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(20);
+select plan(21);
 
 insert into auth.users (id, email, is_anonymous) values
   ('41111111-1111-1111-1111-111111111111', 'seat-owner-a@example.com', false),
@@ -105,6 +105,17 @@ select lives_ok($$ insert into ctx select 'session_2', session_id::text from pub
   'with seating off, a diner opens the table by scanning, as before');
 select isnt((select v from ctx where k = 'session_2'), (select v from ctx where k = 'session'),
   'the scan opened a new session, not the closed one');
+
+-- ============================ no settings row: seating required (fails closed) ======
+reset role;
+insert into restaurants (id, name, slug) values ('4eeeeeee-0000-4000-8000-000000000001', 'No Settings', 'no-settings');
+insert into dining_tables (restaurant_id, label) values ('4eeeeeee-0000-4000-8000-000000000001', 'N1');
+insert into ctx select 'n1_token', qr_token from dining_tables
+  where restaurant_id = '4eeeeeee-0000-4000-8000-000000000001' and label = 'N1';
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"4bbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated","is_anonymous":true}';
+select throws_ok($$ select * from public.join_table((select v from ctx where k = 'n1_token')) $$,
+  'P0001', 'table not open', 'a restaurant with no settings row requires seating (fails closed)');
 
 select * from finish();
 rollback;

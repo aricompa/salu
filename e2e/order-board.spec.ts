@@ -280,3 +280,26 @@ test("happy path: a diner names themselves and orders, staff move it along, the 
   await phoneContext.close();
   await context.close();
 });
+
+test("closing a table a colleague already closed says so instead of confirming", async ({
+  browser,
+}) => {
+  await addUnseatedTable(fx, "H1");
+  const sessionId = await seatTable(fx, "H1");
+  // Realtime off, and seating isn't published anyway: this tablet's strip stays stale.
+  const { context, page } = await openBoard(browser, { realtime: false });
+  await expect(page.getByRole("button", { name: "Close table H1" })).toBeVisible();
+
+  await rest(fx.ownerJwt, "rpc/close_table_session", {
+    method: "POST",
+    body: { p_session_id: sessionId },
+  });
+  await page.getByRole("button", { name: "Close table H1" }).click();
+  const dialog = page.getByRole("dialog", { name: "Close H1?" });
+  await dialog.getByRole("button", { name: "Close table" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(
+    "That's no longer here. Refresh to see the latest.",
+  );
+  await expect(page.getByText("Closed H1.")).toHaveCount(0);
+  await context.close();
+});

@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore, useTransition, type FormEvent } from "r
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Sheet } from "@/components/ui/Sheet";
-import type { ActionResult } from "@/lib/errors";
+import { ERROR_COPY, type ActionResult } from "@/lib/errors";
 
 const askedKey = (sessionId: string) => `salu.name-asked.${sessionId}`;
 
@@ -57,9 +57,14 @@ export function NameSheet({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     startTransition(async () => {
-      const result = await save(name);
-      if (result.ok) finish();
-      else setError(result.error.message);
+      try {
+        const result = await save(name);
+        if (result.ok) finish();
+        else setError(result.error.message);
+      } catch {
+        // Offline or unreachable: keep the sheet open with a message, not the error page.
+        setError(ERROR_COPY.connection);
+      }
     });
   };
 

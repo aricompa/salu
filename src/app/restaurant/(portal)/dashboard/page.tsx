@@ -85,7 +85,7 @@ export default async function DashboardPage() {
             <Card className="flex flex-col gap-1">
               <dt className="text-muted">
                 Average time to serve
-                <span className="block text-sm">
+                <span className="block text-base">
                   {live.servedToday > 0
                     ? `Sent to served, ${plural(live.servedToday, "order")} today`
                     : "Sent to served, today"}

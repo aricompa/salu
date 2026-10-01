@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, type ReactNode } from "react";
-import type { ActionResult } from "@/lib/errors";
+import { fail, type ActionResult } from "@/lib/errors";
 import { Button, type ButtonProps } from "./Button";
 
 export type ButtonAction = (
@@ -36,7 +36,9 @@ export function ActionButton({
 }) {
   const [state, formAction, pending] = useActionState<ActionResult<null> | null, FormData>(
     async (prev, formData) => {
-      const result = await action(prev, formData);
+      // A dropped connection rejects the call: say so next to the button rather than
+      // letting it replace the page (a board mid-service must stay up).
+      const result = await action(prev, formData).catch(() => fail("connection"));
       if (result?.ok) onSuccess?.();
       return result;
     },
@@ -58,7 +60,7 @@ export function ActionButton({
         {children}
       </Button>
       {error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-danger">
           {error}
         </p>
       )}

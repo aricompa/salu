@@ -67,4 +67,15 @@ describe("NameSheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Skip" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("keeps the sheet open with a message when the connection drops", async () => {
+    const save = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<NameSheet sessionId="s1" save={save} />);
+    await userEvent.type(screen.getByLabelText("Your name"), "Ari");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(
+      await screen.findByText("We couldn't reach Salu. Check the connection and try again."),
+    ).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "What should we call you?" })).toBeVisible();
+  });
 });

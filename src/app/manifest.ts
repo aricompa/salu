@@ -9,7 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Salu",
     short_name: "Salu",
-    description: "Scan, order and pay from your table.",
+    // Phase 1 has no payments (Phase 3), so the install card doesn't promise them.
+    description: "Scan the code on your table and order from your phone.",
     start_url: "/",
     scope: "/",
     display: "standalone",

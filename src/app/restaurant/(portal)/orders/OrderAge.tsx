@@ -23,7 +23,7 @@ export function OrderAge({ submittedAt }: { submittedAt: string }) {
     <span
       suppressHydrationWarning
       className={cn(
-        "inline-flex shrink-0 items-center rounded-chip border px-2.5 py-0.5 text-base whitespace-nowrap",
+        "inline-flex shrink-0 items-center rounded-chip border px-2.5 py-0.5 text-lg whitespace-nowrap",
         tones[age.tone],
       )}
     >
