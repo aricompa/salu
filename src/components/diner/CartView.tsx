@@ -101,7 +101,7 @@ export function CartView({
           <li key={`${line.itemId}-${line.notes}`} className="flex flex-col gap-2 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-lg font-semibold">{line.name}</p>
+                <p className="font-display text-lg font-semibold">{line.name}</p>
                 {line.notes && <p className="text-muted">“{line.notes}”</p>}
               </div>
               <p className="font-medium">{money(line.priceCents * line.quantity)}</p>

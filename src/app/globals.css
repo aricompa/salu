@@ -4,62 +4,70 @@
  * Design tokens. Components use these via Tailwind utilities (bg-surface,
  * text-muted, border-border, ...). No raw hex outside this file.
  * Every text token meets WCAG AA (4.5:1) on surface and surface-raised;
- * border and focus meet 3:1. Brand is a neutral placeholder until Q7 is decided.
+ * border and focus meet 3:1; brand-contrast meets 4.5:1 on brand and on
+ * brand-hover. src/lib/theme-tokens.test.ts checks all of this.
+ * Brand palette from the SALOO/SERV brand deck (open decision 1, resolved
+ * 2026-10-02): rust #c43d04 and teal #0e4e62 in light, orange #ef9936 on
+ * deep teal in dark, mint #a4dcd1 for dark focus.
  */
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --salu-brand: #334155;
+  --salu-brand: #c43d04;
+  --salu-brand-hover: #a83403;
   --salu-brand-contrast: #ffffff;
   --salu-surface: #ffffff;
-  --salu-surface-raised: #f5f6f8;
-  --salu-border: #737b89;
-  --salu-text: #111827;
-  --salu-text-muted: #4b5563;
+  --salu-surface-raised: #f8f7f3;
+  --salu-border: #7c8a8f;
+  --salu-text: #0e4e62;
+  --salu-text-muted: #4d626a;
   --salu-success: #15803d;
   --salu-warning: #a16207;
-  --salu-danger: #b91c1c;
-  --salu-focus: #2563eb;
-  --salu-scrim: rgb(17 24 39 / 0.45);
+  --salu-danger: #9f1239;
+  --salu-focus: #0e4e62;
+  --salu-scrim: rgb(11 30 36 / 0.45);
 }
 
 /* Portal forces dark with data-theme="dark"; diner pages follow the device. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --salu-brand: #cbd5e1;
-    --salu-brand-contrast: #0f1117;
-    --salu-surface: #0f1117;
-    --salu-surface-raised: #1a1d26;
-    --salu-border: #6b7280;
-    --salu-text: #f3f4f6;
-    --salu-text-muted: #a1a7b3;
+    --salu-brand: #ef9936;
+    --salu-brand-hover: #f3ad5c;
+    --salu-brand-contrast: #0b1e24;
+    --salu-surface: #0b1e24;
+    --salu-surface-raised: #132d35;
+    --salu-border: #6b8890;
+    --salu-text: #f4f1ea;
+    --salu-text-muted: #a9bec4;
     --salu-success: #4ade80;
     --salu-warning: #facc15;
-    --salu-danger: #f87171;
-    --salu-focus: #93c5fd;
+    --salu-danger: #fb7185;
+    --salu-focus: #a4dcd1;
     --salu-scrim: rgb(0 0 0 / 0.6);
   }
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --salu-brand: #cbd5e1;
-  --salu-brand-contrast: #0f1117;
-  --salu-surface: #0f1117;
-  --salu-surface-raised: #1a1d26;
-  --salu-border: #6b7280;
-  --salu-text: #f3f4f6;
-  --salu-text-muted: #a1a7b3;
+  --salu-brand: #ef9936;
+  --salu-brand-hover: #f3ad5c;
+  --salu-brand-contrast: #0b1e24;
+  --salu-surface: #0b1e24;
+  --salu-surface-raised: #132d35;
+  --salu-border: #6b8890;
+  --salu-text: #f4f1ea;
+  --salu-text-muted: #a9bec4;
   --salu-success: #4ade80;
   --salu-warning: #facc15;
-  --salu-danger: #f87171;
-  --salu-focus: #93c5fd;
+  --salu-danger: #fb7185;
+  --salu-focus: #a4dcd1;
   --salu-scrim: rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
   --color-brand: var(--salu-brand);
+  --color-brand-hover: var(--salu-brand-hover);
   --color-brand-contrast: var(--salu-brand-contrast);
   --color-surface: var(--salu-surface);
   --color-surface-raised: var(--salu-surface-raised);
@@ -80,6 +88,8 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Headings and diner item names: Aleo, the brand deck's serif (ruled 2026-10-02). */
+  --font-display: var(--font-aleo), ui-serif, Georgia, serif;
 }
 
 /* Staff portal: field hints and errors at 16px, PRD 5.4's body minimum (ruled 2026-09-30).
@@ -89,6 +99,11 @@
 @layer base {
   body {
     @apply bg-surface font-sans text-text antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
   }
   :focus-visible {
     outline: 3px solid var(--salu-focus);
