@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ActionButton, Badge, Button, Card, ConfirmDialog, buttonStyles } from "@/components/ui";
 import type { MenuCategory, MenuItem } from "@/lib/menu";
+import { addonCounts, type AddonLink } from "@/lib/menu-addons";
 import { formatCents } from "@/lib/money";
 import { DIETARY_TAGS } from "@/lib/dietary";
 import {
@@ -15,6 +16,8 @@ import { CategoryName } from "./CategoryName";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+type Counts = ReturnType<typeof addonCounts>;
+
 /**
  * The menu as the portal shows it. `manage` (owner or manager) adds the editing
  * controls; floor staff get the list and the 86 switch only. RLS is the real gate.
@@ -22,15 +25,18 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 export function MenuBoard({
   categories,
   items,
+  links,
   manage,
   currency,
 }: {
   categories: MenuCategory[];
   items: MenuItem[];
+  links: AddonLink[];
   manage: boolean;
   currency: string;
 }) {
   const itemsIn = (categoryId: string | null) => items.filter((i) => i.category_id === categoryId);
+  const counts = addonCounts(items, links);
   const uncategorised = itemsIn(null);
   return (
     <>
@@ -44,6 +50,7 @@ export function MenuBoard({
               last={index === categories.length - 1}
               manage={manage}
               currency={currency}
+              counts={counts}
             />
           </li>
         ))}
@@ -56,7 +63,7 @@ export function MenuBoard({
               Diners don&apos;t see these. {manage && "Edit each one to pick a category."}
             </p>
           </div>
-          <ItemList items={uncategorised} manage={manage} currency={currency} />
+          <ItemList items={uncategorised} manage={manage} currency={currency} counts={counts} />
         </Card>
       )}
     </>
@@ -70,6 +77,7 @@ function CategorySection({
   last,
   manage,
   currency,
+  counts,
 }: {
   category: MenuCategory;
   items: MenuItem[];
@@ -77,6 +85,7 @@ function CategorySection({
   last: boolean;
   manage: boolean;
   currency: string;
+  counts: Counts;
 }) {
   const { id, name, is_active } = category;
   return (
@@ -140,7 +149,7 @@ function CategorySection({
       {items.length === 0 ? (
         <p className="text-muted">No items yet.</p>
       ) : (
-        <ItemList items={items} manage={manage} currency={currency} />
+        <ItemList items={items} manage={manage} currency={currency} counts={counts} />
       )}
       {manage && (
         <Link
@@ -158,10 +167,12 @@ function ItemList({
   items,
   manage,
   currency,
+  counts,
 }: {
   items: MenuItem[];
   manage: boolean;
   currency: string;
+  counts: Counts;
 }) {
   return (
     <ul className="flex flex-col divide-y divide-border">
@@ -184,7 +195,9 @@ function ItemList({
                 );
               })}
               {!item.is_available && <Badge tone="danger">Sold out</Badge>}
+              {item.addon_only && <Badge>Add-on</Badge>}
             </div>
+            <AddonLine item={item} counts={counts} />
             {item.description && <p className="line-clamp-2 text-muted">{item.description}</p>}
           </div>
           <div className="flex flex-wrap items-start gap-2">
@@ -231,4 +244,20 @@ function ItemList({
       ))}
     </ul>
   );
+}
+
+/** What diners get: where an add-on is offered, or how many add-ons an item offers. */
+function AddonLine({ item, counts }: { item: MenuItem; counts: Counts }) {
+  if (item.addon_only) {
+    const n = counts.goesWith.get(item.id) ?? 0;
+    return (
+      <p className={n === 0 ? "text-warning" : "text-muted"}>
+        {n === 0
+          ? "Not offered yet: edit it to pick the items it goes with."
+          : `Offered with ${plural(n, "item")}`}
+      </p>
+    );
+  }
+  const n = counts.offers.get(item.id) ?? 0;
+  return n > 0 ? <p className="text-muted">{plural(n, "add-on")}</p> : null;
 }

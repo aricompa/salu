@@ -51,6 +51,13 @@ function OrderCard({ order }: { order: BoardOrder }) {
             <span>
               <span className="font-semibold">{item.quantity} ×</span> {item.name}
             </span>
+            {item.addons.length > 0 && (
+              <ul className="flex flex-col pl-7" aria-label={`Add-ons for ${item.name}`}>
+                {item.addons.map((addon) => (
+                  <li key={addon.id}>+ {addon.name}</li>
+                ))}
+              </ul>
+            )}
             {item.notes && <Note label="Note" text={item.notes} />}
           </li>
         ))}

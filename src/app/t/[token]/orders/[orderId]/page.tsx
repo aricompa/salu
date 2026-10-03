@@ -6,6 +6,7 @@ import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { getDinerSession } from "@/lib/diner";
 import { getDinerOrder, getRestaurantCurrency } from "@/lib/diner-orders";
 import { formatCents } from "@/lib/money";
+import { nestLines } from "@/lib/order-lines";
 import { uuidField } from "@/lib/validation/fields";
 import { TableClosed } from "../../TableClosed";
 import { DinerHeader } from "@/components/diner/DinerHeader";
@@ -52,13 +53,21 @@ export default async function OrderPage({
             Your order
           </h2>
           <ul className="flex flex-col divide-y divide-border">
-            {order.order_items.map((line) => (
-              <li key={line.id} className="flex justify-between gap-3 py-2">
-                <span>
-                  {line.quantity} × {line.item_name}
-                  {line.notes && <span className="block text-sm text-muted">“{line.notes}”</span>}
+            {nestLines(order.order_items).map((line) => (
+              <li key={line.id} className="flex flex-col gap-1 py-2">
+                <span className="flex justify-between gap-3">
+                  <span>
+                    {line.quantity} × {line.item_name}
+                  </span>
+                  <span>{money(line.unit_price_cents * line.quantity)}</span>
                 </span>
-                <span>{money(line.unit_price_cents * line.quantity)}</span>
+                {line.addons.map((addon) => (
+                  <span key={addon.id} className="flex justify-between gap-3 pl-6 text-muted">
+                    <span>+ {addon.item_name}</span>
+                    <span>{money(addon.unit_price_cents * addon.quantity)}</span>
+                  </span>
+                ))}
+                {line.notes && <span className="block text-sm text-muted">“{line.notes}”</span>}
               </li>
             ))}
           </ul>

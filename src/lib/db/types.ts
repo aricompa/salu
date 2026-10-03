@@ -99,8 +99,52 @@ export type Database = {
           },
         ];
       };
+      menu_item_addons: {
+        Row: {
+          addon_id: string;
+          created_at: string;
+          item_id: string;
+          restaurant_id: string;
+        };
+        Insert: {
+          addon_id: string;
+          created_at?: string;
+          item_id: string;
+          restaurant_id: string;
+        };
+        Update: {
+          addon_id?: string;
+          created_at?: string;
+          item_id?: string;
+          restaurant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_addons_addon_id_restaurant_id_fkey";
+            columns: ["addon_id", "restaurant_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id", "restaurant_id"];
+          },
+          {
+            foreignKeyName: "menu_item_addons_item_id_restaurant_id_fkey";
+            columns: ["item_id", "restaurant_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id", "restaurant_id"];
+          },
+          {
+            foreignKeyName: "menu_item_addons_restaurant_id_fkey";
+            columns: ["restaurant_id"];
+            isOneToOne: false;
+            referencedRelation: "restaurants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       menu_items: {
         Row: {
+          addon_only: boolean;
           category_id: string | null;
           created_at: string;
           description: string | null;
@@ -115,6 +159,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          addon_only?: boolean;
           category_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -129,6 +174,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          addon_only?: boolean;
           category_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -166,6 +212,7 @@ export type Database = {
           menu_item_id: string | null;
           notes: string | null;
           order_id: string;
+          parent_id: string | null;
           quantity: number;
           unit_price_cents: number;
         };
@@ -175,6 +222,7 @@ export type Database = {
           menu_item_id?: string | null;
           notes?: string | null;
           order_id: string;
+          parent_id?: string | null;
           quantity: number;
           unit_price_cents: number;
         };
@@ -184,6 +232,7 @@ export type Database = {
           menu_item_id?: string | null;
           notes?: string | null;
           order_id?: string;
+          parent_id?: string | null;
           quantity?: number;
           unit_price_cents?: number;
         };
@@ -201,6 +250,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "orders";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_parent_fk";
+            columns: ["parent_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "order_items";
+            referencedColumns: ["id", "order_id"];
           },
         ];
       };

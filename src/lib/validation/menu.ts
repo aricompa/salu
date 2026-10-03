@@ -59,6 +59,12 @@ export const itemSchema = z.object({
     .array(z.enum(TAG_VALUES, "Pick tags from the list."))
     .transform((tags) => [...new Set(tags)]),
   isAvailable: z.boolean(),
+  // linked add-ons (ruled 2026-10-03): only sold inside the items it goes with
+  addonOnly: z.boolean(),
+  goesWith: z
+    .array(uuidField, "Pick items from the list.")
+    .max(500, "Pick items from the list.")
+    .transform((ids) => [...new Set(ids)]),
 });
 
 export type ItemInput = z.output<typeof itemSchema>;
@@ -72,6 +78,8 @@ export function itemFormValues(formData: FormData) {
     categoryId: String(formData.get("categoryId") ?? ""),
     dietaryTags: formData.getAll("dietaryTags").map(String),
     isAvailable: formData.get("isAvailable") === "on",
+    addonOnly: formData.get("addonOnly") === "on",
+    goesWith: formData.getAll("goesWith").map(String),
   };
 }
 

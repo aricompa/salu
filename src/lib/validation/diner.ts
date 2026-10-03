@@ -37,6 +37,12 @@ export const orderSchema = z.object({
         itemId: z.uuid(),
         quantity: z.number().int().min(1).max(50),
         notes: z.string().trim().max(200),
+        // linked add-ons for this line (ruled 2026-10-03); place_order checks each link
+        addonIds: z
+          .array(z.uuid())
+          .max(10)
+          .refine((ids) => new Set(ids).size === ids.length, "Each add-on once.")
+          .default([]),
       }),
     )
     .min(1)

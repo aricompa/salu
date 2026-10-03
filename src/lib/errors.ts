@@ -29,6 +29,7 @@ export type AppErrorCode =
   | "slug_taken"
   | "label_taken"
   | "category_not_empty"
+  | "addon_links_failed"
   | "not_found"
   | "not_allowed"
   | "invalid_input"
@@ -57,6 +58,7 @@ export const ERROR_COPY: Record<AppErrorCode, string> = {
   slug_taken: "That link is taken. Try another.",
   label_taken: "You already have a table with that name.",
   category_not_empty: "Move or delete its items first.",
+  addon_links_failed: "We saved the item but not the items it goes with. Pick them and save again.",
   not_found: "That's no longer here. Refresh to see the latest.",
   not_allowed: "You don't have access to do that.",
   invalid_input: "Check the highlighted fields and try again.",

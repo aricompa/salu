@@ -3,6 +3,7 @@ import {
   decodeDinerCookie,
   displayNameSchema,
   encodeDinerCookie,
+  orderSchema,
   qrTokenSchema,
   type DinerTable,
 } from "./diner";
@@ -52,5 +53,31 @@ describe("displayNameSchema", () => {
     expect(displayNameSchema.parse("é".repeat(40))).toHaveLength(40);
     expect(displayNameSchema.safeParse("   ").success).toBe(false);
     expect(displayNameSchema.safeParse("x".repeat(41)).success).toBe(false);
+  });
+});
+
+describe("orderSchema add-ons", () => {
+  const itemId = "5d2f838d-4756-48cb-81b5-7b046b7e0217";
+  const addon = "00000000-0000-4000-8000-000000000002";
+  const line = { itemId, quantity: 1, notes: "" };
+
+  it("reads a line without add-ons as none", () => {
+    const parsed = orderSchema.parse({ lines: [line], notes: "" });
+    expect(parsed.lines[0].addonIds).toEqual([]);
+  });
+
+  it("refuses repeated, malformed or more than 10 add-ons", () => {
+    const many = Array.from(
+      { length: 11 },
+      (_, i) => `00000000-0000-4000-8000-0000000000${10 + i}`,
+    );
+    for (const addonIds of [[addon, addon], ["not-an-id"], many]) {
+      expect(orderSchema.safeParse({ lines: [{ ...line, addonIds }], notes: "" }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      orderSchema.safeParse({ lines: [{ ...line, addonIds: [addon] }], notes: "" }).success,
+    ).toBe(true);
   });
 });

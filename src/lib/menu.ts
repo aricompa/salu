@@ -1,6 +1,7 @@
 import "server-only";
 import type { Tables } from "@/lib/db/types";
 import { fail, toAppError, type ActionResult } from "@/lib/errors";
+import type { AddonLink } from "@/lib/menu-addons";
 import { oneRowChanged, reorder } from "@/lib/mutations";
 import { createClient } from "@/lib/supabase/server";
 import type { ItemInput } from "@/lib/validation/menu";
@@ -19,17 +20,21 @@ export type MenuItem = Pick<
   | "is_available"
   | "dietary_tags"
   | "sort_order"
+  | "addon_only"
 >;
 
 const ITEM_COLUMNS =
-  "id, category_id, name, description, price_cents, is_available, dietary_tags, sort_order";
+  "id, category_id, name, description, price_cents, is_available, dietary_tags, sort_order, addon_only";
 
-/** The whole menu for the portal, including hidden categories and sold-out items. */
+/**
+ * The whole menu for the portal, including hidden categories and sold-out items, and
+ * which add-ons go with which items.
+ */
 export async function getMenu(
   restaurantId: string,
-): Promise<{ categories: MenuCategory[]; items: MenuItem[] }> {
+): Promise<{ categories: MenuCategory[]; items: MenuItem[]; links: AddonLink[] }> {
   const supabase = await createClient();
-  const [categories, items] = await Promise.all([
+  const [categories, items, links] = await Promise.all([
     supabase
       .from("menu_categories")
       .select("id, name, sort_order, is_active")
@@ -42,10 +47,12 @@ export async function getMenu(
       .eq("restaurant_id", restaurantId)
       .order("sort_order")
       .order("created_at"),
+    supabase.from("menu_item_addons").select("item_id, addon_id").eq("restaurant_id", restaurantId),
   ]);
   if (categories.error) throw new Error(`Could not load categories: ${categories.error.message}`);
   if (items.error) throw new Error(`Could not load items: ${items.error.message}`);
-  return { categories: categories.data, items: items.data };
+  if (links.error) throw new Error(`Could not load add-ons: ${links.error.message}`);
+  return { categories: categories.data, items: items.data, links: links.data };
 }
 
 export async function getItem(restaurantId: string, itemId: string): Promise<MenuItem | null> {
@@ -166,6 +173,7 @@ const itemRow = (input: ItemInput) => ({
   category_id: input.categoryId,
   dietary_tags: input.dietaryTags,
   is_available: input.isAvailable,
+  addon_only: input.addonOnly,
 });
 
 export async function createItem(
@@ -257,5 +265,43 @@ export async function setItemAvailability(
     p_available: available,
   });
   if (error) return { ok: false, error: toAppError(error) };
+  return { ok: true, data: null };
+}
+
+/**
+ * Which items an add-on goes with (ruled 2026-10-03). An add-on-only item keeps exactly
+ * `goesWith` (regular items of this restaurant) and can't have add-ons of its own; a
+ * regular item can't be anyone's add-on. Links that would never count are removed, so the
+ * portal shows what diners get. Owners and managers only (RLS). `itemId` is a parsed uuid.
+ */
+export async function setAddonLinks(
+  restaurantId: string,
+  itemId: string,
+  addonOnly: boolean,
+  goesWith: readonly string[],
+): Promise<ActionResult<null>> {
+  const supabase = await createClient();
+  const cleared = await supabase
+    .from("menu_item_addons")
+    .delete()
+    .eq("restaurant_id", restaurantId)
+    .or(addonOnly ? `item_id.eq.${itemId},addon_id.eq.${itemId}` : `addon_id.eq.${itemId}`);
+  if (cleared.error) return fail("addon_links_failed");
+  if (!addonOnly || goesWith.length === 0) return { ok: true, data: null };
+
+  const { data: parents, error } = await supabase
+    .from("menu_items")
+    .select("id")
+    .eq("restaurant_id", restaurantId)
+    .eq("addon_only", false)
+    .in("id", [...goesWith]);
+  if (error) return fail("addon_links_failed");
+  if (parents.length === 0) return { ok: true, data: null };
+
+  const added = await supabase
+    .from("menu_item_addons")
+    .insert(parents.map((p) => ({ restaurant_id: restaurantId, item_id: p.id, addon_id: itemId })));
+  // Any failure here (a concurrent save's duplicate included) leaves the item saved.
+  if (added.error) return fail("addon_links_failed");
   return { ok: true, data: null };
 }

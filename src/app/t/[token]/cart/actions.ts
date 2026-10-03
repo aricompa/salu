@@ -12,7 +12,8 @@ export type PlaceOrderResult =
 /**
  * Places the cart as an order for the table this device scanned. Uses the session id from
  * the scan, so a table closed by staff answers session_closed instead of opening a new tab.
- * Sends item ids, quantities and notes only; the database prices everything (rule 4).
+ * Sends item ids, add-on ids, quantities and notes only; the database prices everything
+ * (rule 4).
  */
 export async function placeOrderAction(input: unknown): Promise<PlaceOrderResult> {
   const session = await getDinerSession();
@@ -23,8 +24,6 @@ export async function placeOrderAction(input: unknown): Promise<PlaceOrderResult
 
   const result = await placeOrder(session.table.sessionId, parsed.data);
   if (result.ok || result.error.code !== "item_unavailable") return result;
-  const soldOutItemIds = await unavailableAmong(session.table.restaurantId, [
-    ...new Set(parsed.data.lines.map((l) => l.itemId)),
-  ]);
+  const soldOutItemIds = await unavailableAmong(session.table.restaurantId, parsed.data.lines);
   return { ...result, soldOutItemIds };
 }

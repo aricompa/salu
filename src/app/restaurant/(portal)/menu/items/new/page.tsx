@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireMembership } from "@/lib/auth";
 import { getMenu } from "@/lib/menu";
+import { addonFormFields } from "@/lib/menu-addons";
 import { canManage } from "@/lib/roles";
 import { ItemForm } from "../../ItemForm";
 
@@ -13,7 +14,7 @@ export default async function NewItemPage({
 }) {
   const { membership } = await requireMembership();
   if (!canManage(membership.role)) notFound();
-  const [{ categories }, { category }] = await Promise.all([
+  const [{ categories, items, links }, { category }] = await Promise.all([
     getMenu(membership.restaurantId),
     searchParams,
   ]);
@@ -24,6 +25,8 @@ export default async function NewItemPage({
       <h1 className="text-3xl font-semibold">Add an item</h1>
       <ItemForm
         categories={categories}
+        goesWithGroups={addonFormFields(categories, items, links, null).groups}
+        offers={[]}
         item={{
           id: null,
           name: "",
@@ -32,6 +35,8 @@ export default async function NewItemPage({
           categoryId: preselected,
           dietaryTags: [],
           isAvailable: true,
+          addonOnly: false,
+          goesWith: [],
         }}
       />
     </div>

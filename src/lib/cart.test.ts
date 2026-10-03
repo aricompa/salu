@@ -3,7 +3,10 @@ import {
   MAX_LINES,
   addLine,
   cartTotals,
+  lineKey,
+  lineUnitCents,
   loadCart,
+  namesOf,
   removeItems,
   removeLine,
   saveCart,
@@ -12,7 +15,17 @@ import {
   type CartLine,
 } from "./cart";
 
-const salmon: CartLine = { itemId: "s", name: "Salmon", priceCents: 2400, quantity: 1, notes: "" };
+const salmon: CartLine = {
+  itemId: "s",
+  name: "Salmon",
+  priceCents: 2400,
+  quantity: 1,
+  notes: "",
+  addons: [],
+};
+const patty = { itemId: "p", name: "Add Patty", priceCents: 600 };
+const bacon = { itemId: "b", name: "Add Bacon", priceCents: 300 };
+const burger: CartLine = { ...salmon, itemId: "m", name: "Mason Burger", priceCents: 1500 };
 
 describe("cart", () => {
   it("merges the same item with the same notes, keeps different notes apart", () => {
@@ -37,6 +50,46 @@ describe("cart", () => {
     const cart = [salmon, { ...salmon, itemId: "t" }, { ...salmon, notes: "x" }];
     expect(removeLine(cart, 1)).toHaveLength(2);
     expect(removeItems(cart, new Set(["s"]))).toEqual([{ ...salmon, itemId: "t" }]);
+  });
+});
+
+describe("cart add-ons", () => {
+  it("prices a unit as the item plus its add-ons, for every unit", () => {
+    const cart = addLine([], { ...burger, quantity: 2, addons: [patty, bacon] });
+    expect(lineUnitCents(cart[0])).toBe(2400);
+    expect(cartTotals(cart)).toEqual({ count: 2, subtotalCents: 4800 });
+  });
+
+  it("keeps two burgers with different add-ons apart, and merges the same add-ons in any order", () => {
+    let cart = addLine([], { ...burger, addons: [patty] });
+    cart = addLine(cart, burger);
+    cart = addLine(cart, { ...burger, addons: [patty, bacon] });
+    cart = addLine(cart, { ...burger, addons: [bacon, patty] });
+    expect(cart.map((l) => [l.addons.map((a) => a.name), l.quantity])).toEqual([
+      [["Add Patty"], 1],
+      [[], 1],
+      [["Add Patty", "Add Bacon"], 2],
+    ]);
+    expect(new Set(cart.map(lineKey)).size).toBe(3);
+  });
+
+  it("drops a repeated add-on and caps a line at 10", () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ ...patty, itemId: `a${i}` }));
+    expect(addLine([], { ...burger, addons: [patty, patty] })[0].addons).toEqual([patty]);
+    expect(addLine([], { ...burger, addons: many })[0].addons).toHaveLength(10);
+  });
+
+  it("takes a sold-out add-on off every line but keeps the item, merging lines that match", () => {
+    const cart: CartLine[] = [
+      { ...burger, addons: [patty] },
+      { ...burger, quantity: 2 },
+      { ...salmon, addons: [bacon] },
+    ];
+    expect(removeItems(cart, new Set(["p"]))).toEqual([
+      { ...burger, quantity: 3 },
+      { ...salmon, addons: [bacon] },
+    ]);
+    expect(namesOf(cart, new Set(["p", "s"]))).toEqual(["Add Patty", "Salmon"]);
   });
 });
 
@@ -71,6 +124,15 @@ describe("cart storage", () => {
       salmon,
     ]);
     expect(loadCart(undefined, "k")).toEqual([]);
+  });
+
+  it("reads a cart saved before add-ons existed, and drops junk add-ons", () => {
+    const { addons: _ignored, ...old } = salmon;
+    void _ignored;
+    expect(loadCart({ getItem: () => JSON.stringify([old]) }, "k")).toEqual([salmon]);
+    expect(
+      loadCart({ getItem: () => JSON.stringify([{ ...salmon, addons: [{ itemId: 1 }] }]) }, "k"),
+    ).toEqual([]);
   });
 });
 
