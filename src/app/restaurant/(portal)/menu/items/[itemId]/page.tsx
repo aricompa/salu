@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireMembership } from "@/lib/auth";
+import { ERROR_COPY } from "@/lib/errors";
 import { getItem, getMenu } from "@/lib/menu";
 import { addonFormFields } from "@/lib/menu-addons";
 import { canManage } from "@/lib/roles";
@@ -35,11 +36,7 @@ export default async function EditItemPage({
         categories={categories}
         goesWithGroups={addons.groups}
         offers={addons.offers}
-        notice={
-          linkState === "failed"
-            ? "We saved the item but not the items it goes with. Pick them and save again."
-            : undefined
-        }
+        notice={linkState === "failed" ? ERROR_COPY.addon_links_failed : undefined}
         item={{
           id: item.id,
           name: item.name,

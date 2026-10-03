@@ -56,7 +56,9 @@ describe("unorderableIds", () => {
   const links = [{ item_id: "mason", addon_id: "patty" }];
 
   it("names nothing when every line and add-on can be ordered", () => {
-    expect(unorderableIds([{ itemId: "mason", addonIds: ["patty"] }], orderable, links)).toEqual([]);
+    expect(unorderableIds([{ itemId: "mason", addonIds: ["patty"] }], orderable, links)).toEqual(
+      [],
+    );
   });
 
   it("names a gone item, an add-on-only item on its own, and add-ons that are gone or unlinked", () => {
@@ -77,7 +79,12 @@ describe("unorderableIds", () => {
 
 describe("addonCounts", () => {
   it("counts links that reach diners, both ways", () => {
-    const items = [item("mason", "b"), item("veggie", "b"), item("patty", "a", true), item("fries", "a")];
+    const items = [
+      item("mason", "b"),
+      item("veggie", "b"),
+      item("patty", "a", true),
+      item("fries", "a"),
+    ];
     const { goesWith, offers } = addonCounts(items, [
       { item_id: "mason", addon_id: "patty" },
       { item_id: "veggie", addon_id: "patty" },

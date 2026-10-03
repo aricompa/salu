@@ -138,9 +138,12 @@ export function ItemForm({
           />
           Only sold as an add-on
         </label>
+        {failure?.fieldErrors?.addonOnly && (
+          <p className="text-sm text-danger portal:text-base">{failure.fieldErrors.addonOnly}</p>
+        )}
         <p id="addon-only-hint" className="text-sm text-muted portal:text-base">
-          Like &ldquo;Add Patty&rdquo;. Diners pick it inside the items it goes with, not from
-          the menu list.
+          Like &ldquo;Add Patty&rdquo;. Diners pick it inside the items it goes with, not from the
+          menu list.
         </p>
         {addonOnly && offers.length > 0 && (
           <p className="text-warning">
@@ -149,13 +152,18 @@ export function ItemForm({
         )}
         {!addonOnly && offers.length > 0 && (
           <p className="text-muted">
-            Add-ons offered with it: {offers.join(", ")}. Edit an add-on to change where
-            it&apos;s offered.
+            Add-ons offered with it: {offers.join(", ")}. Edit an add-on to change where it&apos;s
+            offered.
           </p>
         )}
       </div>
       {addonOnly && (
-        <GoesWithPicker groups={goesWithGroups} picked={goesWith} onPick={pick} />
+        <GoesWithPicker
+          groups={goesWithGroups}
+          picked={goesWith}
+          onPick={pick}
+          error={failure?.fieldErrors?.goesWith}
+        />
       )}
       {notice && !failure && (
         <p role="status" className="text-warning">
@@ -184,10 +192,12 @@ function GoesWithPicker({
   groups,
   picked,
   onPick,
+  error,
 }: {
   groups: GoesWithGroup[];
   picked: ReadonlySet<string>;
   onPick: (ids: string[], on: boolean) => void;
+  error?: string;
 }) {
   return (
     <fieldset className="flex flex-col gap-4">
@@ -195,11 +205,15 @@ function GoesWithPicker({
       <p className="text-sm text-muted portal:text-base">
         Diners see it as a choice on these items. {picked.size} picked.
       </p>
+      {error && <p className="text-sm text-danger portal:text-base">{error}</p>}
       {groups.length === 0 && <p className="text-muted">Add some menu items first.</p>}
       {groups.map((group) => {
         const ids = group.items.map((i) => i.id);
         return (
-          <fieldset key={group.id} className="flex flex-col gap-1 rounded-card border border-border p-3">
+          <fieldset
+            key={group.id}
+            className="flex flex-col gap-1 rounded-card border border-border p-3"
+          >
             <legend className="px-1 font-semibold">{group.name}</legend>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => onPick(ids, true)}>

@@ -18,8 +18,9 @@ grant insert (addon_only) on public.menu_items to authenticated;
 grant update (addon_only) on public.menu_items to authenticated;
 
 -- 2. Which add-ons go with which item. Configuration, not history: deleting either item
---    removes its links. A link only counts when the add-on is add-on-only and the item is
---    not (the diner menu and place_order both check), so a stale link offers nothing.
+--    removes its links. A link joins an add-on-only item to one that isn't (checked on
+--    insert below); a later flag change leaves links that the diner menu and place_order
+--    both ignore, and the portal clears them when it saves the flag.
 create table public.menu_item_addons (
   restaurant_id uuid not null references public.restaurants (id) on delete cascade,
   item_id       uuid not null,
@@ -47,26 +48,45 @@ create policy item_addons_manager_delete on public.menu_item_addons
   for delete to authenticated
   using (private.is_member(restaurant_id, array['owner', 'manager']::public.member_role[]));
 
+-- rule 9: the database checks the pairing as well as zod and the portal
+create function private.check_addon_link()
+returns trigger language plpgsql set search_path = ''
+as $$
+begin
+  if not exists (select 1 from public.menu_items a where a.id = new.addon_id and a.addon_only)
+  or exists (select 1 from public.menu_items i where i.id = new.item_id and i.addon_only) then
+    raise exception 'an add-on must be add-on-only, and the item it goes with must not be'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+create trigger menu_item_addons_pairing before insert on public.menu_item_addons
+  for each row execute function private.check_addon_link();
+
 grant select on public.menu_item_addons to anon, authenticated;
 grant insert (restaurant_id, item_id, addon_id), delete on public.menu_item_addons to authenticated;
 -- the server-side admin client keeps the same reach it has on every other table
 grant select, insert, update, delete on public.menu_item_addons to service_role;
 
 -- 3. An add-on line points at the line it belongs to, in the same order. The kitchen
---    ticket nests it there; its quantity follows that line's.
+--    ticket nests it there; its quantity follows that line's. No cascade: a line with
+--    add-ons can't be deleted on its own (order history, rule 5); the check runs at the end
+--    of the statement, so whatever removes a whole order removes both together.
 alter table public.order_items
   add constraint order_items_id_order_key unique (id, order_id);
 alter table public.order_items
   add column parent_id uuid,
   add constraint order_items_parent_fk foreign key (parent_id, order_id)
-    references public.order_items (id, order_id) on delete cascade,
+    references public.order_items (id, order_id),
   add constraint order_items_parent_not_self check (parent_id <> id);
 create index order_items_parent_idx on public.order_items (parent_id) where parent_id is not null;
 
 -- 4. place_order takes an optional `addon_ids` array on each line. Same signature, so its
 --    grants (authenticated only) carry over, and a line without `addon_ids` orders as
---    before. Everything else is unchanged from 20261001014239, except that add-on-only
---    items are refused as lines of their own.
+--    before. Otherwise unchanged from 20261001014239, except: add-on-only items are refused
+--    as lines of their own, and with up to 11 rows a line, the subtotal is summed as a
+--    bigint and refused past what orders.subtotal_cents holds.
 create or replace function public.place_order(p_session_id uuid, p_items jsonb, p_notes text default null)
 returns uuid
 language plpgsql security definer set search_path = ''
@@ -81,7 +101,7 @@ declare
   v_parent_id  uuid;
   v_addons     uuid[];
   v_inserted   integer;
-  v_subtotal   integer;
+  v_subtotal   bigint;
 begin
   if v_uid is null then
     raise exception 'sign-in required' using errcode = '42501';
@@ -192,8 +212,11 @@ begin
     end if;
   end loop;
 
-  select sum(oi.unit_price_cents * oi.quantity) into v_subtotal
+  select sum(oi.unit_price_cents::bigint * oi.quantity) into v_subtotal
   from public.order_items oi where oi.order_id = v_order_id;
+  if v_subtotal > 2147483647 then
+    raise exception 'order total too large' using errcode = '22023', hint = 'invalid_items';
+  end if;
   update public.orders set subtotal_cents = v_subtotal where id = v_order_id;
 
   return v_order_id;

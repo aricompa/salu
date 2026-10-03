@@ -106,6 +106,32 @@ describe("MenuView add-ons", () => {
     );
   });
 
+  it("stops at 10 add-ons, so the price and the cart agree", async () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({
+      id: `a${i}`,
+      name: `Extra ${i + 1}`,
+      price_cents: 100,
+      is_available: true,
+    }));
+    render(
+      <MenuView
+        token="tok"
+        sessionId="s4"
+        currency="usd"
+        categories={[{ ...categories[0], items: [{ ...categories[0].items[0], addons: many }] }]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Mason Burger/ }));
+    for (let i = 1; i <= 10; i++) {
+      await userEvent.click(screen.getByRole("checkbox", { name: new RegExp(`Extra ${i}\\b`) }));
+    }
+    expect(screen.getByRole("checkbox", { name: /Extra 11/ })).toBeDisabled();
+    expect(screen.getByText("That's 10, the most for one item.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add · $25.00" })).toBeVisible();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Extra 1\b/ }));
+    expect(screen.getByRole("checkbox", { name: /Extra 11/ })).toBeEnabled();
+  });
+
   it("starts each sheet with nothing picked, and shows no add-ons for items without any", async () => {
     renderMenu("s3");
     await userEvent.click(screen.getByRole("button", { name: /Mason Burger/ }));

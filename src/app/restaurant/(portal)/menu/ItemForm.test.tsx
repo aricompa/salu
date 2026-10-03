@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 // The real actions module pulls in server-only code; the form only needs a reference.
-vi.mock("./actions", () => ({ saveItemAction: vi.fn() }));
+const saveItemAction = vi.fn();
+vi.mock("./actions", () => ({ saveItemAction }));
 
 const { ItemForm } = await import("./ItemForm");
 
@@ -64,6 +65,28 @@ describe("ItemForm add-ons", () => {
     expect(screen.getByRole("checkbox", { name: "Mason Burger" })).toBeChecked();
     await userEvent.click(screen.getByRole("button", { name: "None in Smash Burgers" }));
     expect(new FormData(formOf()).getAll("goesWith")).toEqual([]);
+  });
+
+  it("shows what went wrong with the add-on fields after a failed save", async () => {
+    saveItemAction.mockResolvedValueOnce({
+      ok: false,
+      error: { code: "invalid_input", message: "Check the highlighted fields and try again." },
+      fieldErrors: { goesWith: "Pick items from the list." },
+      values: {},
+    });
+    render(
+      <ItemForm
+        item={{ ...defaults, addonOnly: true, goesWith: ["b1"] }}
+        categories={[]}
+        goesWithGroups={groups}
+        offers={[]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    const picker = await screen.findByRole("group", { name: "Goes with" });
+    expect(await within(picker).findByText("Pick items from the list.")).toBeVisible();
+    // The picks survive the failed save.
+    expect(within(picker).getByRole("checkbox", { name: "Mason Burger" })).toBeChecked();
   });
 
   it("names a regular item's add-ons, and warns before it becomes one itself", async () => {

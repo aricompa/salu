@@ -94,7 +94,9 @@ describe("MenuBoard", () => {
   });
 
   it("gives floor staff the 86 switch and nothing else", () => {
-    render(<MenuBoard categories={categories} items={items} links={[]} manage={false} currency="usd" />);
+    render(
+      <MenuBoard categories={categories} items={items} links={[]} manage={false} currency="usd" />,
+    );
     const buttons = screen.queryAllByRole("button");
     expect(buttons).toHaveLength(0);
     expect(screen.queryAllByRole("link")).toHaveLength(0);

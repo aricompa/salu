@@ -286,7 +286,7 @@ export async function setAddonLinks(
     .delete()
     .eq("restaurant_id", restaurantId)
     .or(addonOnly ? `item_id.eq.${itemId},addon_id.eq.${itemId}` : `addon_id.eq.${itemId}`);
-  if (cleared.error) return { ok: false, error: toAppError(cleared.error) };
+  if (cleared.error) return fail("addon_links_failed");
   if (!addonOnly || goesWith.length === 0) return { ok: true, data: null };
 
   const { data: parents, error } = await supabase
@@ -295,12 +295,13 @@ export async function setAddonLinks(
     .eq("restaurant_id", restaurantId)
     .eq("addon_only", false)
     .in("id", [...goesWith]);
-  if (error) return { ok: false, error: toAppError(error) };
+  if (error) return fail("addon_links_failed");
   if (parents.length === 0) return { ok: true, data: null };
 
   const added = await supabase
     .from("menu_item_addons")
     .insert(parents.map((p) => ({ restaurant_id: restaurantId, item_id: p.id, addon_id: itemId })));
-  if (added.error) return { ok: false, error: toAppError(added.error) };
+  // Any failure here (a concurrent save's duplicate included) leaves the item saved.
+  if (added.error) return fail("addon_links_failed");
   return { ok: true, data: null };
 }

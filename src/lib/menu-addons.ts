@@ -4,7 +4,9 @@
  * to the item; it hangs off an item that is not add-on-only; and add-on-only items never
  * show as menu items of their own. Pure, so the rules are unit-tested.
  */
-export type AddonLink = { item_id: string; addon_id: string };
+import type { Tables } from "@/lib/db/types";
+
+export type AddonLink = Pick<Tables<"menu_item_addons">, "item_id" | "addon_id">;
 
 type MenuRow = { id: string; category_id: string | null; addon_only: boolean };
 
@@ -80,7 +82,11 @@ export function addonCounts(
   return { goesWith, offers };
 }
 
-export type GoesWithGroup = { id: string; name: string; items: Array<{ id: string; name: string }> };
+export type GoesWithGroup = {
+  id: string;
+  name: string;
+  items: Array<{ id: string; name: string }>;
+};
 
 /**
  * The item form's add-on fields: every regular item that could take this add-on, grouped

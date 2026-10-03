@@ -67,10 +67,17 @@ describe("orderSchema add-ons", () => {
   });
 
   it("refuses repeated, malformed or more than 10 add-ons", () => {
-    const many = Array.from({ length: 11 }, (_, i) => `00000000-0000-4000-8000-0000000000${10 + i}`);
+    const many = Array.from(
+      { length: 11 },
+      (_, i) => `00000000-0000-4000-8000-0000000000${10 + i}`,
+    );
     for (const addonIds of [[addon, addon], ["not-an-id"], many]) {
-      expect(orderSchema.safeParse({ lines: [{ ...line, addonIds }], notes: "" }).success).toBe(false);
+      expect(orderSchema.safeParse({ lines: [{ ...line, addonIds }], notes: "" }).success).toBe(
+        false,
+      );
     }
-    expect(orderSchema.safeParse({ lines: [{ ...line, addonIds: [addon] }], notes: "" }).success).toBe(true);
+    expect(
+      orderSchema.safeParse({ lines: [{ ...line, addonIds: [addon] }], notes: "" }).success,
+    ).toBe(true);
   });
 });

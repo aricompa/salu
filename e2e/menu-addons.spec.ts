@@ -103,7 +103,7 @@ test("a diner picks an add-on inside its item, and the kitchen sees it under tha
 
   await page.getByRole("link", { name: /View order/ }).click();
   await expect(page.getByRole("list", { name: "Add-ons for Grilled Salmon" })).toHaveText(
-    "+ Add Avocado · $3.00",
+    "+ Add Avocado · $3.00 each",
   );
   await expect(page.getByText("$54.00")).toBeVisible();
   await page.screenshot({ path: "test-results/addons-cart-390.png" });

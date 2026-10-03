@@ -8,7 +8,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Stepper } from "@/components/ui/Stepper";
 import { Textarea } from "@/components/ui/Textarea";
 import { cn } from "@/components/ui/cn";
-import { MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } from "@/lib/cart";
+import { MAX_LINE_ADDONS, MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } from "@/lib/cart";
 import { formatCents } from "@/lib/money";
 import { CategoryTabs } from "./CategoryTabs";
 import { DietaryChips } from "./DietaryChips";
@@ -71,6 +71,7 @@ export function MenuView({
   };
   const toggleAddon = (id: string, on: boolean) =>
     setPicked((current) => {
+      if (on && current.size >= MAX_LINE_ADDONS) return current;
       const next = new Set(current);
       if (on) next.add(id);
       else next.delete(id);
@@ -85,10 +86,15 @@ export function MenuView({
         priceCents: open.price_cents,
         quantity,
         notes,
-        addons: pickedAddons.map((a) => ({ itemId: a.id, name: a.name, priceCents: a.price_cents })),
+        addons: pickedAddons.map((a) => ({
+          itemId: a.id,
+          name: a.name,
+          priceCents: a.price_cents,
+        })),
       }),
     );
-    const extras = pickedAddons.length > 0 ? ` with ${listNames(pickedAddons.map((a) => a.name))}` : "";
+    const extras =
+      pickedAddons.length > 0 ? ` with ${listNames(pickedAddons.map((a) => a.name))}` : "";
     setAdded(`Added ${quantity} ${open.name}${extras}.`);
     setOpen(null);
   };
@@ -198,6 +204,7 @@ function listNames(names: string[]): string {
 /**
  * The item's linked add-ons as checkboxes, each with its price. One of each per unit:
  * they follow the quantity. A sold-out add-on stays listed, disabled, with its badge.
+ * At place_order's limit of 10, the rest wait until one is unticked.
  */
 function AddonPicker({
   addons,
@@ -210,10 +217,14 @@ function AddonPicker({
   onToggle: (id: string, on: boolean) => void;
   price: (cents: number) => string;
 }) {
+  const full = addons.filter((a) => a.is_available && picked.has(a.id)).length >= MAX_LINE_ADDONS;
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="mb-1 text-lg font-semibold">Add-ons</legend>
       <p className="mb-1 text-sm text-muted">Optional. They go on each one you add.</p>
+      {full && (
+        <p className="text-sm text-muted">That&apos;s {MAX_LINE_ADDONS}, the most for one item.</p>
+      )}
       {addons.map((addon) => (
         <label
           key={addon.id}
@@ -225,7 +236,7 @@ function AddonPicker({
           <input
             type="checkbox"
             checked={addon.is_available && picked.has(addon.id)}
-            disabled={!addon.is_available}
+            disabled={!addon.is_available || (full && !picked.has(addon.id))}
             onChange={(e) => onToggle(addon.id, e.target.checked)}
             className="size-5 shrink-0"
           />

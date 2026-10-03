@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(37);
+select plan(42);
 
 insert into auth.users (id, email, is_anonymous) values
   ('61111111-1111-1111-1111-111111111111', 'addon-owner@example.com', false),
@@ -35,7 +35,8 @@ insert into menu_items (restaurant_id, category_id, name, price_cents, addon_onl
                ('Add Patty', 600, true, 'cat_add-ons'),
                ('Add Bacon', 300, true, 'cat_add-ons'),
                ('Add Truffle', 900, true, 'cat_old_add-ons'),
-               ('Side Fries', 500, false, 'cat_add-ons')) as x(name, price, addon_only, cat)
+               -- an add-on at first, so it can be linked; un-flagged below (a stale link)
+               ('Side Fries', 500, true, 'cat_add-ons')) as x(name, price, addon_only, cat)
   where r.k = 'rest' and c.k = x.cat;
 insert into ctx select lower(replace(m.name, ' ', '_')), m.id::text from menu_items m, ctx r
   where r.k = 'rest' and m.restaurant_id = r.v::uuid;
@@ -66,6 +67,41 @@ select throws_ok($$
 with changed as (
   update menu_items set addon_only = false where id = (select v::uuid from ctx where k = 'side_fries') returning 1
 ) select is((select count(*)::int from changed), 1, 'the owner can change whether an item is add-on-only');
+select throws_ok($$
+  insert into menu_item_addons (restaurant_id, item_id, addon_id)
+  select r.v::uuid, i.v::uuid, a.v::uuid from ctx r, ctx i, ctx a
+  where r.k = 'rest' and i.k = 'veggie_burger' and a.k = 'side_fries' $$,
+  '23514', 'an add-on must be add-on-only, and the item it goes with must not be',
+  'the database refuses a link to an item that is not add-on-only');
+select throws_ok($$
+  insert into menu_item_addons (restaurant_id, item_id, addon_id)
+  select r.v::uuid, i.v::uuid, a.v::uuid from ctx r, ctx i, ctx a
+  where r.k = 'rest' and i.k = 'add_patty' and a.k = 'add_bacon' $$,
+  '23514', 'an add-on must be add-on-only, and the item it goes with must not be',
+  'the database refuses add-ons on an add-on-only item');
+insert into menu_item_addons (restaurant_id, item_id, addon_id)
+  select r.v::uuid, i.v::uuid, a.v::uuid from ctx r, ctx i, ctx a
+  where r.k = 'rest' and i.k = 'veggie_burger' and a.k = 'add_bacon';
+with gone as (
+  delete from menu_item_addons
+  where item_id = (select v::uuid from ctx where k = 'veggie_burger')
+    and addon_id = (select v::uuid from ctx where k = 'add_bacon')
+  returning 1
+) select is((select count(*)::int from gone), 1, 'the owner can unlink an add-on');
+
+-- an order big enough to pass what orders.subtotal_cents holds: 30 lines x 50 x $11,000
+insert into menu_items (restaurant_id, category_id, name, price_cents)
+  select r.v::uuid, c.v::uuid, 'Gold Burger', 1000000 from ctx r, ctx c where r.k = 'rest' and c.k = 'cat_burgers';
+insert into menu_items (restaurant_id, category_id, name, price_cents, addon_only)
+  select r.v::uuid, c.v::uuid, 'Gold Leaf ' || n, 1000000, true
+  from ctx r, ctx c, generate_series(1, 10) as n where r.k = 'rest' and c.k = 'cat_add-ons';
+insert into ctx select 'gold_burger', m.id::text from menu_items m, ctx r
+  where r.k = 'rest' and m.restaurant_id = r.v::uuid and m.name = 'Gold Burger';
+insert into ctx select 'gold_leaves', jsonb_agg(m.id)::text from menu_items m, ctx r
+  where r.k = 'rest' and m.restaurant_id = r.v::uuid and m.name like 'Gold Leaf %';
+insert into menu_item_addons (restaurant_id, item_id, addon_id)
+  select m.restaurant_id, (select v::uuid from ctx where k = 'gold_burger'), m.id
+  from menu_items m, ctx r where r.k = 'rest' and m.restaurant_id = r.v::uuid and m.name like 'Gold Leaf %';
 
 -- ============================ floor staff cannot change links =======================
 set local request.jwt.claims to '{"sub":"62222222-2222-2222-2222-222222222222","role":"authenticated","is_anonymous":false}';
@@ -91,7 +127,10 @@ insert into menu_categories (restaurant_id, name, is_active) select v::uuid, 'Ex
 insert into menu_items (restaurant_id, category_id, name, price_cents, addon_only)
   select r.v::uuid, c.id, 'Other Cheese', 100, true from ctx r, menu_categories c
   where r.k = 'other' and c.restaurant_id = r.v::uuid;
-insert into ctx select 'other_cheese', m.id::text from menu_items m, ctx r
+insert into menu_items (restaurant_id, category_id, name, price_cents)
+  select r.v::uuid, c.id, 'Other Burger', 1200 from ctx r, menu_categories c
+  where r.k = 'other' and c.restaurant_id = r.v::uuid;
+insert into ctx select lower(replace(m.name, ' ', '_')), m.id::text from menu_items m, ctx r
   where r.k = 'other' and m.restaurant_id = r.v::uuid;
 
 select throws_ok($$
@@ -102,7 +141,7 @@ select throws_ok($$
 select throws_ok($$
   insert into menu_item_addons (restaurant_id, item_id, addon_id)
   select r.v::uuid, i.v::uuid, a.v::uuid from ctx r, ctx i, ctx a
-  where r.k = 'other' and i.k = 'other_cheese' and a.k = 'add_patty' $$,
+  where r.k = 'other' and i.k = 'other_burger' and a.k = 'add_patty' $$,
   '23503', null, 'a link cannot reach another restaurant''s item');
 with gone as (
   delete from menu_item_addons where item_id = (select v::uuid from ctx where k = 'smash_burger') returning 1
@@ -227,6 +266,11 @@ select throws_ok($$
   from order_items p where p.order_id = (select v::uuid from ctx where k = 'order1') and p.parent_id is null $$,
   '23503', null, 'an add-on line cannot point at a line in another order');
 
+select throws_ok($$
+  delete from order_items
+  where order_id = (select v::uuid from ctx where k = 'order1') and item_name = 'Smash Burger' $$,
+  '23503', null, 'a line with add-ons cannot be deleted on its own (no cascade)');
+
 -- deleting an item removes its links, not order history
 delete from menu_items where id = (select v::uuid from ctx where k = 'add_bacon');
 select is((select count(*)::int from menu_item_addons where addon_id = (select v::uuid from ctx where k = 'add_bacon')), 0,
@@ -234,6 +278,15 @@ select is((select count(*)::int from menu_item_addons where addon_id = (select v
 select is((select count(*)::int from order_items
            where order_id = (select v::uuid from ctx where k = 'order1') and item_name = 'Add Bacon'), 1,
   'the order keeps its add-on line after the item is deleted');
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"6aaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated","is_anonymous":true}';
+select throws_ok($$ select public.place_order((select v::uuid from ctx where k = 'session'),
+                    (select jsonb_agg(jsonb_build_object('menu_item_id', (select v from ctx where k = 'gold_burger'),
+                                                         'quantity', 50,
+                                                         'addon_ids', (select v::jsonb from ctx where k = 'gold_leaves')))
+                     from generate_series(1, 30))) $$,
+  '22023', 'order total too large', 'an order past what the subtotal holds is refused, not overflowed');
 
 select * from finish();
 rollback;

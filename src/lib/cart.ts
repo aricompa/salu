@@ -98,7 +98,10 @@ export function cartStorageKey(token: string, sessionId: string): string {
 const isAddon = (v: unknown): v is CartAddon => {
   const a = v as CartAddon;
   return (
-    !!a && typeof a.itemId === "string" && typeof a.name === "string" && Number.isInteger(a.priceCents)
+    !!a &&
+    typeof a.itemId === "string" &&
+    typeof a.name === "string" &&
+    Number.isInteger(a.priceCents)
   );
 };
 

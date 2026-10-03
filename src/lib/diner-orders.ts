@@ -63,12 +63,14 @@ export async function unavailableAmong(
       .eq("restaurant_id", restaurantId)
       .in("item_id", [...new Set(lines.map((l) => l.itemId))]),
   ]);
+  // A failed read names nothing: the diner gets the general message, not a wrong "sold out".
+  if (items.error || links.error) return [];
   const orderable = new Map(
-    (items.data ?? [])
+    items.data
       .filter((i) => i.is_available && i.menu_categories?.is_active)
       .map((i) => [i.id, i.addon_only]),
   );
-  return unorderableIds(lines, orderable, links.data ?? []);
+  return unorderableIds(lines, orderable, links.data);
 }
 
 export async function getRestaurantCurrency(restaurantId: string): Promise<string> {
