@@ -8,6 +8,7 @@ import { getDinerOrder, getRestaurantCurrency } from "@/lib/diner-orders";
 import { formatCents } from "@/lib/money";
 import { uuidField } from "@/lib/validation/fields";
 import { TableClosed } from "../../TableClosed";
+import { DinerHeader } from "@/components/diner/DinerHeader";
 
 export const metadata = { title: "Your order · Salu" };
 
@@ -31,11 +32,11 @@ export default async function OrderPage({
     <>
       <OfflineBanner message="You're offline. Status updates resume when you reconnect." />
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-4 pb-32">
-        <header>
-          <h1 className="text-lg text-muted">
+        <DinerHeader>
+          <h1 className="text-lg font-medium">
             {session.table.restaurantName} · Table {session.table.tableLabel}
           </h1>
-        </header>
+        </DinerHeader>
         {session.kind === "closed" && (
           <p className="rounded-card border border-border p-3">
             This table has been closed. Thanks for dining!
@@ -54,7 +55,7 @@ export default async function OrderPage({
             {order.order_items.map((line) => (
               <li key={line.id} className="flex justify-between gap-3 py-2">
                 <span>
-                  {line.quantity} × <span className="font-display">{line.item_name}</span>
+                  {line.quantity} × {line.item_name}
                   {line.notes && <span className="block text-sm text-muted">“{line.notes}”</span>}
                 </span>
                 <span>{money(line.unit_price_cents * line.quantity)}</span>

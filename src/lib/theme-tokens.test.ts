@@ -1,11 +1,15 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
  * Guards the claims in the globals.css header: every text token meets WCAG AA
- * (4.5:1) on both surfaces, border and focus meet 3:1, and button text meets 4.5:1
- * on brand and brand-hover, in both themes. Also keeps the app icon (an image route
- * that can't read CSS tokens, exception (bh)) on the light brand colour.
+ * (4.5:1) on both surfaces, border and focus meet 3:1, button text meets 4.5:1 on
+ * brand and brand-hover, and brand as a selected-state fill meets 3:1 on surface,
+ * in both themes. Brand (Persimmon) is too light to be text on a light surface, so
+ * no component may use it as text. Also keeps the app icon (an image route that
+ * can't read CSS tokens, exception (bh)) on the light brand colour, and checks the
+ * colour layer (the same in both themes): header text on the Marigold band and
+ * charcoal on every accent and tint.
  */
 const css = readFileSync("src/app/globals.css", "utf8");
 
@@ -14,7 +18,7 @@ function block(selector: string): Record<string, string> {
   expect(start, `${selector} block`).toBeGreaterThanOrEqual(0);
   const body = css.slice(start, css.indexOf("}", start));
   return Object.fromEntries(
-    [...body.matchAll(/--salu-([a-z-]+):\s*(#[0-9a-f]{6});/g)].map((m) => [m[1], m[2]]),
+    [...body.matchAll(/--salu-([a-z0-9-]+):\s*(#[0-9a-f]{6});/g)].map((m) => [m[1], m[2]]),
   );
 }
 
@@ -44,7 +48,7 @@ describe("theme tokens", () => {
   for (const [name, t] of Object.entries(themes)) {
     describe(name, () => {
       for (const surface of ["surface", "surface-raised"]) {
-        for (const token of ["text", "text-muted", "brand", "success", "warning", "danger"]) {
+        for (const token of ["text", "text-muted", "success", "warning", "danger"]) {
           it(`${token} on ${surface} is at least 4.5:1`, () => {
             expect(contrast(t[token], t[surface])).toBeGreaterThanOrEqual(4.5);
           });
@@ -55,6 +59,9 @@ describe("theme tokens", () => {
           });
         }
       }
+      it("brand as a selected-state fill is at least 3:1 on surface", () => {
+        expect(contrast(t.brand, t.surface)).toBeGreaterThanOrEqual(3);
+      });
       for (const fill of ["brand", "brand-hover"]) {
         it(`button text on ${fill} is at least 4.5:1`, () => {
           expect(contrast(t["brand-contrast"], t[fill])).toBeGreaterThanOrEqual(4.5);
@@ -62,6 +69,32 @@ describe("theme tokens", () => {
       }
     });
   }
+
+  describe("colour layer", () => {
+    const layer = block(":root {");
+    it("is defined", () => {
+      expect(Object.keys(layer)).toContain("header");
+    });
+    for (const token of ["header-text", "header-muted"]) {
+      it(`${token} on the header band is at least 4.5:1`, () => {
+        expect(contrast(layer[token], layer.header)).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+    for (const n of [1, 2, 3, 4]) {
+      for (const fill of [`accent-${n}`, `accent-${n}-soft`]) {
+        it(`on-accent text on ${fill} is at least 4.5:1`, () => {
+          expect(contrast(layer["on-accent"], layer[fill])).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  });
+
+  it("no component uses brand as a text colour", () => {
+    const offenders = readdirSync("src", { recursive: true, encoding: "utf8" })
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"))
+      .filter((f) => /\btext-brand(?![-\w])/.test(readFileSync(`src/${f}`, "utf8")));
+    expect(offenders).toEqual([]);
+  });
 
   it("the app icon background is the light brand colour", () => {
     const icon = readFileSync("src/lib/app-icon.tsx", "utf8");

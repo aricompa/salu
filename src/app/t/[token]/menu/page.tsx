@@ -7,6 +7,7 @@ import { getDinerMenu } from "@/lib/diner-menu";
 import { getActiveOrderId } from "@/lib/diner-orders";
 import { TableClosed } from "../TableClosed";
 import { saveDisplayNameAction } from "./actions";
+import { DinerHeader } from "@/components/diner/DinerHeader";
 
 export const metadata = { title: "Menu · Salu" };
 
@@ -24,20 +25,20 @@ export default async function MenuPage({ params }: { params: Promise<{ token: st
     <>
       <OfflineBanner message="You're offline. Your cart is saved; ordering waits for the connection." />
       <main className="mx-auto flex max-w-2xl flex-col px-4 pt-4">
-        <header className="flex items-start justify-between gap-3 pb-3">
+        <DinerHeader className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">{table.restaurantName}</h1>
-            <p className="text-muted">Table {table.tableLabel}</p>
+            <p className="text-header-muted">Table {table.tableLabel}</p>
           </div>
           {activeOrderId && (
             <Link
               href={`/t/${token}/orders/${activeOrderId}`}
-              className="inline-flex min-h-11 items-center rounded-chip border border-border px-4 font-medium"
+              className="inline-flex min-h-11 items-center rounded-chip border border-header-text px-4 font-medium"
             >
               Orders
             </Link>
           )}
-        </header>
+        </DinerHeader>
         {menu.categories.length === 0 ? (
           <p className="py-16 text-center text-lg text-muted">
             The menu isn&apos;t ready yet. Ask your server.

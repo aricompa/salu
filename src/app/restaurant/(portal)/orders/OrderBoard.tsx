@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui";
+import { Badge, cn } from "@/components/ui";
 import { BOARD_COLUMNS, NEXT_ACTION, canCancel, type ActiveStatus } from "@/lib/board";
 import type { BoardOrder } from "@/lib/orders";
 import { formatTimeIn } from "@/lib/time";
@@ -7,6 +7,14 @@ import { OrderAge } from "./OrderAge";
 import { OrderCardFrame } from "./OrderCardFrame";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** Each stage has a brand accent: a filled column heading and a matching card stripe. */
+const STAGE_COLOURS: Record<ActiveStatus, { heading: string; stripe: string }> = {
+  submitted: { heading: "bg-accent-1", stripe: "border-l-accent-1" },
+  accepted: { heading: "bg-accent-2", stripe: "border-l-accent-2" },
+  preparing: { heading: "bg-accent-4", stripe: "border-l-accent-4" },
+  ready: { heading: "bg-accent-3", stripe: "border-l-accent-3" },
+};
 
 function Note({ label, text }: { label: string; text: string }) {
   return (
@@ -22,7 +30,12 @@ function OrderCard({ order }: { order: BoardOrder }) {
   const next = NEXT_ACTION[status];
   const who = `${order.tableLabel}, ${order.dinerLabel}`;
   return (
-    <OrderCardFrame id={order.id} labelledBy={titleId} waiting={status === "submitted"}>
+    <OrderCardFrame
+      id={order.id}
+      labelledBy={titleId}
+      waiting={status === "submitted"}
+      stripe={STAGE_COLOURS[status].stripe}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 id={titleId} className="text-3xl leading-tight font-bold">
@@ -119,8 +132,14 @@ export function OrderBoard({
               aria-labelledby={headingId}
               className="flex flex-col gap-3"
             >
-              <h2 id={headingId} className="flex items-baseline gap-2 text-xl font-semibold">
-                {column.title} <span className="text-muted">{orders.length}</span>
+              <h2
+                id={headingId}
+                className={cn(
+                  "flex w-fit items-baseline gap-2 rounded-chip px-3.5 py-1 text-xl font-semibold text-on-accent",
+                  STAGE_COLOURS[column.status].heading,
+                )}
+              >
+                {column.title} <span className="font-normal">{orders.length}</span>
               </h2>
               {orders.length === 0 ? (
                 <p className="rounded-card border border-dashed border-border p-4 text-muted">

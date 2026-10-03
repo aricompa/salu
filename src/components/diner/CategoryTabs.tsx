@@ -58,7 +58,9 @@ export function CategoryTabs({ categories }: { categories: Array<{ id: string; n
               aria-current={current === c.id ? "true" : undefined}
               className={cn(
                 "inline-flex min-h-11 items-center rounded-chip border px-4 font-medium whitespace-nowrap",
-                current === c.id ? "border-text bg-text text-surface" : "border-border text-text",
+                current === c.id
+                  ? "border-brand bg-brand text-brand-contrast"
+                  : "border-border text-text",
               )}
             >
               {c.name}
