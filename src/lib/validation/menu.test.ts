@@ -86,7 +86,21 @@ describe("itemSchema", () => {
       categoryId: null,
       dietaryTags: ["spicy"],
       isAvailable: false,
+      addonOnly: false,
+      goesWith: [],
     });
+  });
+
+  it("reads an add-on and the items it goes with, once each", () => {
+    const burger = "5d2f838d-4756-48cb-81b5-7b046b7e0217";
+    const parsed = itemSchema.parse(
+      form({ name: "Add Patty", price: "6", addonOnly: "on", goesWith: [burger, burger] }),
+    );
+    expect(parsed.addonOnly).toBe(true);
+    expect(parsed.goesWith).toEqual([burger]);
+    expect(
+      itemSchema.safeParse(form({ name: "Add Patty", price: "6", goesWith: ["1"] })).success,
+    ).toBe(false);
   });
 
   it("reads the availability checkbox", () => {

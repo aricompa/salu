@@ -30,6 +30,7 @@ const items: MenuItem[] = [
     is_available: false,
     dietary_tags: ["gluten-free"],
     sort_order: 0,
+    addon_only: false,
   },
   {
     id: "i2000000-0000-4000-8000-000000000002",
@@ -40,12 +41,37 @@ const items: MenuItem[] = [
     is_available: true,
     dietary_tags: [],
     sort_order: 0,
+    addon_only: false,
   },
 ];
 
 describe("MenuBoard", () => {
+  it("marks add-ons and says where each is offered", () => {
+    const addon = (id: string, name: string): MenuItem => ({
+      ...items[0],
+      id,
+      name,
+      is_available: true,
+      dietary_tags: [],
+      addon_only: true,
+    });
+    render(
+      <MenuBoard
+        categories={categories}
+        items={[items[0], addon("a1", "Add Patty"), addon("a2", "Add Truffle")]}
+        links={[{ item_id: items[0].id, addon_id: "a1" }]}
+        manage
+        currency="usd"
+      />,
+    );
+    expect(screen.getAllByText("Add-on")).toHaveLength(2);
+    expect(screen.getByText("Offered with 1 item")).toBeVisible();
+    expect(screen.getByText(/Not offered yet/)).toBeVisible();
+    expect(screen.getByText("1 add-on")).toBeVisible();
+  });
+
   it("shows prices, tags as text, sold-out as text, and hidden and uncategorised groups", () => {
-    render(<MenuBoard categories={categories} items={items} manage currency="usd" />);
+    render(<MenuBoard categories={categories} items={items} links={[]} manage currency="usd" />);
     expect(screen.getByText("$32.00")).toBeInTheDocument();
     expect(screen.getByText("Gluten-free")).toBeInTheDocument();
     expect(screen.getByText("Sold out")).toBeInTheDocument();
@@ -58,7 +84,7 @@ describe("MenuBoard", () => {
   });
 
   it("gives owners and managers the editing controls, with delete blocked on a non-empty category", () => {
-    render(<MenuBoard categories={categories} items={items} manage currency="usd" />);
+    render(<MenuBoard categories={categories} items={items} links={[]} manage currency="usd" />);
     expect(screen.getByRole("button", { name: "Rename Mains" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit Lobster Roll" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete Mains" })).toBeDisabled();
@@ -68,7 +94,7 @@ describe("MenuBoard", () => {
   });
 
   it("gives floor staff the 86 switch and nothing else", () => {
-    render(<MenuBoard categories={categories} items={items} manage={false} currency="usd" />);
+    render(<MenuBoard categories={categories} items={items} links={[]} manage={false} currency="usd" />);
     const buttons = screen.queryAllByRole("button");
     expect(buttons).toHaveLength(0);
     expect(screen.queryAllByRole("link")).toHaveLength(0);

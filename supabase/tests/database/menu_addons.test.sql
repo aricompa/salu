@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(35);
+select plan(37);
 
 insert into auth.users (id, email, is_anonymous) values
   ('61111111-1111-1111-1111-111111111111', 'addon-owner@example.com', false),
@@ -63,6 +63,9 @@ select throws_ok($$
   insert into menu_item_addons (restaurant_id, item_id, addon_id)
   select r.v::uuid, i.v::uuid, i.v::uuid from ctx r, ctx i where r.k = 'rest' and i.k = 'smash_burger' $$,
   '23514', null, 'an item cannot be its own add-on');
+with changed as (
+  update menu_items set addon_only = false where id = (select v::uuid from ctx where k = 'side_fries') returning 1
+) select is((select count(*)::int from changed), 1, 'the owner can change whether an item is add-on-only');
 
 -- ============================ floor staff cannot change links =======================
 set local request.jwt.claims to '{"sub":"62222222-2222-2222-2222-222222222222","role":"authenticated","is_anonymous":false}';
@@ -77,6 +80,9 @@ select is((select count(*)::int from menu_item_addons
 with gone as (
   delete from menu_item_addons where item_id = (select v::uuid from ctx where k = 'smash_burger') returning 1
 ) select is((select count(*)::int from gone), 0, 'floor staff cannot unlink an add-on (0 rows)');
+with changed as (
+  update menu_items set addon_only = true where id = (select v::uuid from ctx where k = 'veggie_burger') returning 1
+) select is((select count(*)::int from changed), 0, 'floor staff cannot make an item add-on-only (0 rows)');
 
 -- ============================ another restaurant cannot touch them =================
 set local request.jwt.claims to '{"sub":"63333333-3333-3333-3333-333333333333","role":"authenticated","is_anonymous":false}';

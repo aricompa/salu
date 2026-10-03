@@ -59,3 +59,64 @@ export function unorderableIds(
   }
   return [...gone];
 }
+
+/**
+ * For the portal's menu list: how many items each add-on goes with, and how many add-ons
+ * each regular item offers, counting only links that reach diners (the shapeDinerMenu
+ * rules, minus hidden categories, which the portal shows anyway).
+ */
+export function addonCounts(
+  items: ReadonlyArray<Pick<MenuRow, "id" | "addon_only">>,
+  links: AddonLink[],
+): { goesWith: Map<string, number>; offers: Map<string, number> } {
+  const addonOnly = new Map(items.map((i) => [i.id, i.addon_only]));
+  const goesWith = new Map<string, number>();
+  const offers = new Map<string, number>();
+  for (const { item_id, addon_id } of links) {
+    if (addonOnly.get(addon_id) !== true || addonOnly.get(item_id) !== false) continue;
+    goesWith.set(addon_id, (goesWith.get(addon_id) ?? 0) + 1);
+    offers.set(item_id, (offers.get(item_id) ?? 0) + 1);
+  }
+  return { goesWith, offers };
+}
+
+export type GoesWithGroup = { id: string; name: string; items: Array<{ id: string; name: string }> };
+
+/**
+ * The item form's add-on fields: every regular item that could take this add-on, grouped
+ * by category in menu order (hidden categories marked, uncategorised last), which of them
+ * it goes with now, and the add-ons this item offers if it is a regular item.
+ */
+export function addonFormFields(
+  categories: ReadonlyArray<{ id: string; name: string; is_active: boolean }>,
+  items: ReadonlyArray<MenuRow & { name: string }>,
+  links: AddonLink[],
+  itemId: string | null,
+): { groups: GoesWithGroup[]; goesWith: string[]; offers: string[] } {
+  const candidates = items.filter((i) => !i.addon_only && i.id !== itemId);
+  const group = (id: string | null, name: string): GoesWithGroup => ({
+    id: id ?? "none",
+    name,
+    items: candidates.filter((i) => i.category_id === id).map((i) => ({ id: i.id, name: i.name })),
+  });
+  const known = new Set(categories.map((c) => c.id));
+  const groups = [
+    ...categories.map((c) => group(c.id, c.is_active ? c.name : `${c.name} (hidden)`)),
+    {
+      ...group(null, "No category"),
+      items: candidates
+        .filter((i) => i.category_id === null || !known.has(i.category_id))
+        .map((i) => ({ id: i.id, name: i.name })),
+    },
+  ].filter((g) => g.items.length > 0);
+
+  const isCandidate = new Set(candidates.map((i) => i.id));
+  const offered = new Set(links.filter((l) => l.item_id === itemId).map((l) => l.addon_id));
+  return {
+    groups,
+    goesWith: links
+      .filter((l) => l.addon_id === itemId && isCandidate.has(l.item_id))
+      .map((l) => l.item_id),
+    offers: items.filter((a) => a.addon_only && offered.has(a.id)).map((a) => a.name),
+  };
+}

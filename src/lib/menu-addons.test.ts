@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shapeDinerMenu, unorderableIds } from "./menu-addons";
+import { addonCounts, addonFormFields, shapeDinerMenu, unorderableIds } from "./menu-addons";
 import { nestLines } from "./order-lines";
 
 const item = (id: string, category_id: string | null, addon_only = false) => ({
@@ -72,6 +72,63 @@ describe("unorderableIds", () => {
         links,
       ),
     ).toEqual(["lobster", "patty", "bacon", "fries"]);
+  });
+});
+
+describe("addonCounts", () => {
+  it("counts links that reach diners, both ways", () => {
+    const items = [item("mason", "b"), item("veggie", "b"), item("patty", "a", true), item("fries", "a")];
+    const { goesWith, offers } = addonCounts(items, [
+      { item_id: "mason", addon_id: "patty" },
+      { item_id: "veggie", addon_id: "patty" },
+      { item_id: "mason", addon_id: "fries" },
+    ]);
+    expect([...goesWith]).toEqual([["patty", 2]]);
+    expect([...offers]).toEqual([
+      ["mason", 1],
+      ["veggie", 1],
+    ]);
+  });
+});
+
+describe("addonFormFields", () => {
+  const categories = [
+    { id: "b", name: "Burgers", is_active: true },
+    { id: "a", name: "Add-ons", is_active: true },
+    { id: "s", name: "Secret", is_active: false },
+  ];
+  const named = (id: string, category_id: string | null, addon_only = false) => ({
+    ...item(id, category_id, addon_only),
+    name: id.toUpperCase(),
+  });
+  const items = [
+    named("mason", "b"),
+    named("veggie", "b"),
+    named("patty", "a", true),
+    named("bacon", "a", true),
+    named("staff", "s"),
+    named("loose", null),
+  ];
+  const links = [
+    { item_id: "mason", addon_id: "patty" },
+    { item_id: "mason", addon_id: "bacon" },
+  ];
+
+  it("lists regular items by category, marks hidden ones, and shows current links", () => {
+    const fields = addonFormFields(categories, items, links, "patty");
+    expect(fields.groups.map((g) => [g.name, g.items.map((i) => i.id)])).toEqual([
+      ["Burgers", ["mason", "veggie"]],
+      ["Secret (hidden)", ["staff"]],
+      ["No category", ["loose"]],
+    ]);
+    expect(fields.goesWith).toEqual(["mason"]);
+    expect(fields.offers).toEqual([]);
+  });
+
+  it("names the add-ons a regular item offers, and never lists the item itself", () => {
+    const fields = addonFormFields(categories, items, links, "mason");
+    expect(fields.offers).toEqual(["PATTY", "BACON"]);
+    expect(fields.groups[0].items.map((i) => i.id)).toEqual(["veggie"]);
   });
 });
 
