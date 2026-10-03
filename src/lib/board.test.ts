@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { NEXT_ACTION, averageServeMinutes, canCancel, dinerLabels, ticketAge } from "./board";
+import {
+  NEXT_ACTION,
+  averageServeMinutes,
+  boardLines,
+  canCancel,
+  dinerLabels,
+  ticketAge,
+} from "./board";
 
 describe("ticketAge", () => {
   const at = (mins: number) => new Date(Date.parse("2026-09-30T18:00:00Z") + mins * 60_000);
@@ -55,5 +62,30 @@ describe("averageServeMinutes", () => {
         { submitted_at: "2026-09-30T18:00:00Z", served_at: null },
       ]),
     ).toBe(16);
+  });
+});
+
+describe("boardLines", () => {
+  const row = (id: string, item_name: string, parent_id: string | null = null) => ({
+    id,
+    parent_id,
+    item_name,
+    quantity: 1,
+    notes: null,
+  });
+
+  it("keeps each add-on under its own burger, so two burgers read apart", () => {
+    const lines = boardLines([
+      row("a1", "Add Patty", "b2"),
+      row("b1", "Mason Burger"),
+      row("b2", "Mason Burger"),
+      row("c", "Cheese Curds"),
+      row("a2", "Add Bacon Jam", "c"),
+    ]);
+    expect(lines.map((l) => [l.name, l.addons.map((a) => a.name)])).toEqual([
+      ["Cheese Curds", ["Add Bacon Jam"]],
+      ["Mason Burger", []],
+      ["Mason Burger", ["Add Patty"]],
+    ]);
   });
 });

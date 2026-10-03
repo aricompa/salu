@@ -1,5 +1,11 @@
 import "server-only";
-import { ACTIVE_STATUSES, dinerLabels, type Participant } from "@/lib/board";
+import {
+  ACTIVE_STATUSES,
+  boardLines,
+  dinerLabels,
+  type BoardLine,
+  type Participant,
+} from "@/lib/board";
 import type { ActionResult } from "@/lib/errors";
 import { oneRowChanged } from "@/lib/mutations";
 import type { OrderStatus } from "@/lib/order-status";
@@ -15,11 +21,11 @@ export type BoardOrder = {
   submittedAt: string;
   /** served_at or cancelled_at; null while the order is active. */
   finishedAt: string | null;
-  items: Array<{ id: string; name: string; quantity: number; notes: string | null }>;
+  items: BoardLine[];
 };
 
 const ORDER_COLUMNS =
-  "id, session_id, placed_by, status, notes, submitted_at, served_at, cancelled_at, order_items (id, item_name, quantity, notes), table_sessions (dining_tables (label))";
+  "id, session_id, placed_by, status, notes, submitted_at, served_at, cancelled_at, order_items (id, parent_id, item_name, quantity, notes), table_sessions (dining_tables (label))";
 
 /**
  * The live board through RLS (members only): every active order, oldest first, and the
@@ -75,9 +81,7 @@ export async function getBoardOrders(
     notes: o.notes,
     submittedAt: o.submitted_at,
     finishedAt: o.served_at ?? o.cancelled_at,
-    items: o.order_items
-      .map((i) => ({ id: i.id, name: i.item_name, quantity: i.quantity, notes: i.notes }))
-      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
+    items: boardLines(o.order_items),
   });
   return { active: active.data.map(toBoard), done: done.data.map(toBoard) };
 }
