@@ -1,5 +1,6 @@
 import type { Tables } from "@/lib/db/types";
 import type { OrderStatus } from "@/lib/order-status";
+import { nestLines } from "@/lib/order-lines";
 
 /** Order board pure helpers (PRD P4). The data comes from src/lib/orders.ts. */
 
@@ -82,4 +83,35 @@ export function averageServeMinutes(
 /** "No open orders", "1 open order", "2 open orders" (the Tables strip). */
 export function openOrders(n: number): string {
   return n === 0 ? "No open orders" : `${n} open order${n === 1 ? "" : "s"}`;
+}
+
+export type BoardLine = {
+  id: string;
+  name: string;
+  quantity: number;
+  notes: string | null;
+  /** One per unit of the line, so they carry no quantity of their own. */
+  addons: Array<{ id: string; name: string }>;
+};
+
+/**
+ * A ticket's lines: sorted by name (order_items has no position column), each add-on
+ * under the line it belongs to, so two burgers with different add-ons read apart.
+ */
+export function boardLines(
+  rows: ReadonlyArray<
+    Pick<Tables<"order_items">, "id" | "parent_id" | "item_name" | "quantity" | "notes">
+  >,
+): BoardLine[] {
+  const byName = <T extends { name: string; id: string }>(a: T, b: T) =>
+    a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+  return nestLines([...rows])
+    .map((line) => ({
+      id: line.id,
+      name: line.item_name,
+      quantity: line.quantity,
+      notes: line.notes,
+      addons: line.addons.map((a) => ({ id: a.id, name: a.item_name })).sort(byName),
+    }))
+    .sort(byName);
 }

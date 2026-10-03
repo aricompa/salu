@@ -41,6 +41,18 @@ values
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c3',
    'Local IPA', 'Rotating draft, 16 oz.', 900, true, '{vegetarian}', 4);
 
+-- One linked add-on (ruled 2026-10-03): sold only inside the burger, never on its own.
+insert into public.menu_items
+  (restaurant_id, category_id, name, description, price_cents, is_available, dietary_tags, sort_order, addon_only)
+values
+  ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-0000000000c2',
+   'Add Bacon', null, 300, true, '{}', 5, true);
+insert into public.menu_item_addons (restaurant_id, item_id, addon_id)
+select b.restaurant_id, b.id, a.id
+from public.menu_items b, public.menu_items a
+where b.restaurant_id = '00000000-0000-4000-8000-000000000001' and b.name = 'Bistro Burger'
+  and a.restaurant_id = b.restaurant_id and a.name = 'Add Bacon';
+
 -- qr_token is set by trigger; never supply it.
 insert into public.dining_tables (restaurant_id, label, capacity) values
   ('00000000-0000-4000-8000-000000000001', 'A1', 2),

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Tables } from "@/lib/db/types";
 import { toAppError, type ActionResult } from "@/lib/errors";
+import { unorderableIds } from "@/lib/menu-addons";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderInput } from "@/lib/validation/diner";
 
@@ -30,6 +31,7 @@ export async function placeOrder(
       menu_item_id: l.itemId,
       quantity: l.quantity,
       notes: l.notes === "" ? null : l.notes,
+      addon_ids: l.addonIds,
     })),
     p_notes: input.notes === "" ? undefined : input.notes,
   });
@@ -38,22 +40,37 @@ export async function placeOrder(
 }
 
 /**
- * Which of these items can't be ordered right now: sold out, deleted, or in a hidden or
- * missing category (as place_order decides). place_order doesn't say which line failed,
- * so after item_unavailable the cart asks here and names them. Diners can't read a hidden
- * category at all (RLS), so its embed comes back empty.
+ * Which items and add-ons in these lines can't be ordered right now, as place_order
+ * decides (`unorderableIds`). place_order doesn't say which line failed, so after
+ * item_unavailable the cart asks here and names them. Diners can't read a hidden category
+ * at all (RLS), so its embed comes back empty.
  */
-export async function unavailableAmong(restaurantId: string, itemIds: string[]): Promise<string[]> {
+export async function unavailableAmong(
+  restaurantId: string,
+  lines: Array<{ itemId: string; addonIds: string[] }>,
+): Promise<string[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("menu_items")
-    .select("id, is_available, menu_categories (is_active)")
-    .eq("restaurant_id", restaurantId)
-    .in("id", itemIds);
-  const available = new Set(
-    (data ?? []).filter((i) => i.is_available && i.menu_categories?.is_active).map((i) => i.id),
+  const ids = [...new Set(lines.flatMap((l) => [l.itemId, ...l.addonIds]))];
+  const [items, links] = await Promise.all([
+    supabase
+      .from("menu_items")
+      .select("id, is_available, addon_only, menu_categories (is_active)")
+      .eq("restaurant_id", restaurantId)
+      .in("id", ids),
+    supabase
+      .from("menu_item_addons")
+      .select("item_id, addon_id")
+      .eq("restaurant_id", restaurantId)
+      .in("item_id", [...new Set(lines.map((l) => l.itemId))]),
+  ]);
+  // A failed read names nothing: the diner gets the general message, not a wrong "sold out".
+  if (items.error || links.error) return [];
+  const orderable = new Map(
+    items.data
+      .filter((i) => i.is_available && i.menu_categories?.is_active)
+      .map((i) => [i.id, i.addon_only]),
   );
-  return itemIds.filter((id) => !available.has(id));
+  return unorderableIds(lines, orderable, links.data);
 }
 
 export async function getRestaurantCurrency(restaurantId: string): Promise<string> {
@@ -80,7 +97,10 @@ export type DinerOrder = Pick<
   | "cancelled_at"
 > & {
   order_items: Array<
-    Pick<Tables<"order_items">, "id" | "item_name" | "unit_price_cents" | "quantity" | "notes">
+    Pick<
+      Tables<"order_items">,
+      "id" | "parent_id" | "item_name" | "unit_price_cents" | "quantity" | "notes"
+    >
   >;
 };
 
@@ -90,7 +110,7 @@ export async function getDinerOrder(orderId: string): Promise<DinerOrder | null>
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, session_id, status, subtotal_cents, notes, submitted_at, accepted_at, ready_at, served_at, cancelled_at, order_items (id, item_name, unit_price_cents, quantity, notes)",
+      "id, session_id, status, subtotal_cents, notes, submitted_at, accepted_at, ready_at, served_at, cancelled_at, order_items (id, parent_id, item_name, unit_price_cents, quantity, notes)",
     )
     .eq("id", orderId)
     .maybeSingle();

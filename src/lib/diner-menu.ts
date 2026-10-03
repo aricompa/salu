@@ -1,21 +1,24 @@
 import "server-only";
 import type { Tables } from "@/lib/db/types";
+import { shapeDinerMenu } from "@/lib/menu-addons";
 import { createClient } from "@/lib/supabase/server";
 
+export type DinerAddon = Pick<Tables<"menu_items">, "id" | "name" | "price_cents" | "is_available">;
 export type DinerItem = Pick<
   Tables<"menu_items">,
   "id" | "name" | "description" | "price_cents" | "is_available" | "dietary_tags"
->;
+> & { addons: DinerAddon[] };
 export type DinerCategory = { id: string; name: string; items: DinerItem[] };
 export type DinerMenu = { currency: string; categories: DinerCategory[] };
 
 /**
  * The menu diners see: active categories, and only items inside them (an item with no
- * category, or in a hidden one, is not offered). Sold-out items stay visible.
+ * category, or in a hidden one, is not offered). Sold-out items stay visible. Add-on-only
+ * items show inside the items they're linked to, not as items of their own.
  */
 export async function getDinerMenu(restaurantId: string): Promise<DinerMenu> {
   const supabase = await createClient();
-  const [restaurant, categories, items] = await Promise.all([
+  const [restaurant, categories, items, links] = await Promise.all([
     supabase.from("restaurants").select("currency").eq("id", restaurantId).single(),
     supabase
       .from("menu_categories")
@@ -26,33 +29,39 @@ export async function getDinerMenu(restaurantId: string): Promise<DinerMenu> {
       .order("created_at"),
     supabase
       .from("menu_items")
-      .select("id, category_id, name, description, price_cents, is_available, dietary_tags")
+      .select(
+        "id, category_id, name, description, price_cents, is_available, dietary_tags, addon_only",
+      )
       .eq("restaurant_id", restaurantId)
       .not("category_id", "is", null)
       .order("sort_order")
       .order("created_at"),
+    supabase.from("menu_item_addons").select("item_id, addon_id").eq("restaurant_id", restaurantId),
   ]);
   if (restaurant.error) throw new Error(`Could not load restaurant: ${restaurant.error.message}`);
   if (categories.error) throw new Error(`Could not load menu: ${categories.error.message}`);
   if (items.error) throw new Error(`Could not load menu items: ${items.error.message}`);
+  if (links.error) throw new Error(`Could not load add-ons: ${links.error.message}`);
 
   return {
     currency: restaurant.data.currency,
-    categories: categories.data
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        items: items.data
-          .filter((i) => i.category_id === c.id)
-          .map((i) => ({
-            id: i.id,
-            name: i.name,
-            description: i.description,
-            price_cents: i.price_cents,
-            is_available: i.is_available,
-            dietary_tags: i.dietary_tags,
-          })),
-      }))
-      .filter((c) => c.items.length > 0),
+    categories: shapeDinerMenu(categories.data, items.data, links.data).map((c) => ({
+      id: c.id,
+      name: c.name,
+      items: c.items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        description: i.description,
+        price_cents: i.price_cents,
+        is_available: i.is_available,
+        dietary_tags: i.dietary_tags,
+        addons: i.addons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          price_cents: a.price_cents,
+          is_available: a.is_available,
+        })),
+      })),
+    })),
   };
 }

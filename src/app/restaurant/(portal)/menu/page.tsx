@@ -11,7 +11,7 @@ export const metadata = { title: "Menu · Salu" };
 export default async function MenuPage() {
   const { membership } = await requireMembership();
   const manage = canManage(membership.role);
-  const { categories, items } = await getMenu(membership.restaurantId);
+  const { categories, items, links } = await getMenu(membership.restaurantId);
   const soldOut = items.filter((i) => !i.is_available).length;
 
   return (
@@ -53,6 +53,7 @@ export default async function MenuPage() {
         <MenuBoard
           categories={categories}
           items={items}
+          links={links}
           manage={manage}
           currency={membership.restaurantCurrency}
         />

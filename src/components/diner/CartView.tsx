@@ -11,6 +11,9 @@ import { Textarea } from "@/components/ui/Textarea";
 import {
   cartStorageKey,
   cartTotals,
+  lineKey,
+  lineUnitCents,
+  namesOf,
   removeItems,
   removeLine,
   setQuantity,
@@ -73,7 +76,12 @@ export function CartView({
     startTransition(async () => {
       setProblem(null);
       const result = await placeOrder({
-        lines: cart.map((l) => ({ itemId: l.itemId, quantity: l.quantity, notes: l.notes })),
+        lines: cart.map((l) => ({
+          itemId: l.itemId,
+          quantity: l.quantity,
+          notes: l.notes,
+          addonIds: l.addons.map((a) => a.itemId),
+        })),
         notes,
       });
       if (result.ok) {
@@ -83,7 +91,7 @@ export function CartView({
       }
       if (result.error.code === "item_unavailable" && result.soldOutItemIds?.length) {
         const gone = new Set(result.soldOutItemIds);
-        const names = cart.filter((l) => gone.has(l.itemId)).map((l) => l.name);
+        const names = namesOf(cart, gone);
         updateCart((c) => removeItems(c, gone));
         setProblem({ message: soldOutMessage(names) });
         return;
@@ -97,28 +105,45 @@ export function CartView({
   return (
     <div className="flex flex-col gap-5 pb-40">
       <ul className="flex flex-col divide-y divide-border">
-        {cart.map((line, index) => (
-          <li key={`${line.itemId}-${line.notes}`} className="flex flex-col gap-2 py-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-semibold">{line.name}</p>
-                {line.notes && <p className="text-muted">“{line.notes}”</p>}
+        {cart.map((line, index) => {
+          // Two lines of the same item differ by their add-ons; screen readers hear which.
+          const label =
+            line.addons.length > 0
+              ? `${line.name} with ${line.addons.map((a) => a.name).join(", ")}`
+              : line.name;
+          return (
+            <li key={lineKey(line)} className="flex flex-col gap-2 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold">{line.name}</p>
+                  {line.addons.length > 0 && (
+                    <ul aria-label={`Add-ons for ${line.name}`} className="text-muted">
+                      {line.addons.map((addon) => (
+                        <li key={addon.itemId}>
+                          + {addon.name} · {money(addon.priceCents)}
+                          {line.quantity > 1 && " each"}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {line.notes && <p className="text-muted">“{line.notes}”</p>}
+                </div>
+                <p className="font-medium">{money(lineUnitCents(line) * line.quantity)}</p>
               </div>
-              <p className="font-medium">{money(line.priceCents * line.quantity)}</p>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <Stepper
-                label="Quantity"
-                context={line.name}
-                value={line.quantity}
-                onChange={(q) => updateCart((c) => setQuantity(c, index, q))}
-              />
-              <Button variant="ghost" onClick={() => updateCart((c) => removeLine(c, index))}>
-                Remove <span className="sr-only">{line.name}</span>
-              </Button>
-            </div>
-          </li>
-        ))}
+              <div className="flex items-center justify-between gap-3">
+                <Stepper
+                  label="Quantity"
+                  context={label}
+                  value={line.quantity}
+                  onChange={(q) => updateCart((c) => setQuantity(c, index, q))}
+                />
+                <Button variant="ghost" onClick={() => updateCart((c) => removeLine(c, index))}>
+                  Remove <span className="sr-only">{label}</span>
+                </Button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       <Textarea
