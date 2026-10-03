@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
 /**
- * The app icon: an "S" on the brand placeholder (globals.css --salu-brand, light). The
- * brand colour is open decision 1, and the pre-commit hook blocks hex outside globals.css,
- * so the colours are rgb() (a logged rule U3 exception: image routes can't read CSS tokens).
+ * The app icon: an "S" on the brand rust (globals.css --salu-brand, light; open decision 1,
+ * resolved 2026-10-02). The pre-commit hook blocks hex outside globals.css, so the colours
+ * are rgb() (a logged rule U3 exception: image routes can't read CSS tokens).
  */
-export const ICON_BACKGROUND = "rgb(51, 65, 85)";
+export const ICON_BACKGROUND = "rgb(196, 61, 4)";
 export const ICON_FOREGROUND = "rgb(255, 255, 255)";
 
 /** Square PNG. The letter stays inside the central 80%, so it also works as a maskable icon. */

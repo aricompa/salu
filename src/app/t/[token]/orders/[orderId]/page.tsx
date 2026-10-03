@@ -54,7 +54,7 @@ export default async function OrderPage({
             {order.order_items.map((line) => (
               <li key={line.id} className="flex justify-between gap-3 py-2">
                 <span>
-                  {line.quantity} × {line.item_name}
+                  {line.quantity} × <span className="font-display">{line.item_name}</span>
                   {line.notes && <span className="block text-sm text-muted">“{line.notes}”</span>}
                 </span>
                 <span>{money(line.unit_price_cents * line.quantity)}</span>
