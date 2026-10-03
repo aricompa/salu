@@ -9,11 +9,14 @@ export function OrderCardFrame({
   id,
   labelledBy,
   waiting,
+  stripe,
   children,
 }: {
   id: string;
   labelledBy: string;
   waiting: boolean;
+  /** Left-edge colour class for the card's stage (decoration; the column names the stage). */
+  stripe?: string;
   children: ReactNode;
 }) {
   const fresh = useFreshOrder(id) && waiting;
@@ -22,6 +25,7 @@ export function OrderCardFrame({
       aria-labelledby={labelledBy}
       className={cn(
         "flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-4",
+        stripe && cn("border-l-[6px]", stripe),
         fresh && "animate-[order-pulse_1.2s_ease-in-out_3] motion-reduce:animate-none",
       )}
     >

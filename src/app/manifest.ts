@@ -14,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: "rgb(255, 255, 255)",
+    background_color: "rgb(255, 254, 251)", // Paper White, the light surface
     theme_color: ICON_BACKGROUND,
     icons: [
       { src: "/icon/192", sizes: "192x192", type: "image/png", purpose: "any" },

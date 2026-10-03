@@ -4,65 +4,95 @@
  * Design tokens. Components use these via Tailwind utilities (bg-surface,
  * text-muted, border-border, ...). No raw hex outside this file.
  * Every text token meets WCAG AA (4.5:1) on surface and surface-raised;
- * border and focus meet 3:1; brand-contrast meets 4.5:1 on brand and on
- * brand-hover. src/lib/theme-tokens.test.ts checks all of this.
- * Brand palette from the SALOO/SERV brand deck (open decision 1, resolved
- * 2026-10-02): rust #c43d04 and teal #0e4e62 in light, orange #ef9936 on
- * deep teal in dark, mint #a4dcd1 for dark focus.
+ * border and focus meet 3:1. Brand is a fill, never text: buttons are
+ * named by their label, and brand-contrast meets 4.5:1 on brand and on
+ * brand-hover; as a selected-state fill, brand meets 3:1 on surface.
+ * src/lib/theme-tokens.test.ts checks all of this, and fails on text-brand.
+ *
+ * Palette: Saloo WT Brand Guidelines (open decision 1, 2026-10-02).
+ * Persimmon #f26924 is the action colour (warm, appetising), with charcoal
+ * labels because white on persimmon is 3.05:1. Seaglass #00594c is trust and
+ * health ("salud"): success and focus. Marigold is attention (warnings),
+ * Vermillion is errors. Light-theme warning #955504 and danger #bc1019 are
+ * darker shades of Marigold and Vermillion (the guide has only tints).
+ * Warm greys from Paper White #fffefb to Charcoal #1a1717 are the base.
+ *
+ * Colour layer (direction B, 2026-10-02), the same in both themes, always
+ * with charcoal text (on-accent): a Marigold header band on diner pages;
+ * four accents (Persimmon, Marigold, Seaglass 50, Coral) with their 25 tints,
+ * rotated across menu categories (tinted heading pill, card stripe) and used
+ * for the board's stages (New, Accepted, Ready, Preparing). Decoration only:
+ * every coloured element also carries its text label.
  */
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --salu-brand: #c43d04;
-  --salu-brand-hover: #a83403;
-  --salu-brand-contrast: #ffffff;
-  --salu-surface: #ffffff;
-  --salu-surface-raised: #f8f7f3;
-  --salu-border: #7c8a8f;
-  --salu-text: #0e4e62;
-  --salu-text-muted: #4d626a;
-  --salu-success: #15803d;
-  --salu-warning: #a16207;
-  --salu-danger: #9f1239;
-  --salu-focus: #0e4e62;
-  --salu-scrim: rgb(11 30 36 / 0.45);
+  --salu-brand: #f26924;
+  --salu-brand-hover: #f47e4d;
+  --salu-brand-contrast: #1a1717;
+  --salu-surface: #fffefb;
+  --salu-surface-raised: #f7f5f5;
+  --salu-border: #797272;
+  --salu-text: #1a1717;
+  --salu-text-muted: #575554;
+  --salu-success: #00594c;
+  --salu-warning: #955504;
+  --salu-danger: #bc1019;
+  --salu-focus: #00594c;
+  --salu-scrim: rgb(26 23 23 / 0.45);
 }
 
 /* Portal forces dark with data-theme="dark"; diner pages follow the device. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --salu-brand: #ef9936;
-    --salu-brand-hover: #f3ad5c;
-    --salu-brand-contrast: #0b1e24;
-    --salu-surface: #0b1e24;
-    --salu-surface-raised: #132d35;
-    --salu-border: #6b8890;
-    --salu-text: #f4f1ea;
-    --salu-text-muted: #a9bec4;
-    --salu-success: #4ade80;
-    --salu-warning: #facc15;
-    --salu-danger: #fb7185;
-    --salu-focus: #a4dcd1;
+    --salu-brand: #f26924;
+    --salu-brand-hover: #f47e4d;
+    --salu-brand-contrast: #1a1717;
+    --salu-surface: #1a1717;
+    --salu-surface-raised: #342f2f;
+    --salu-border: #a49c9d;
+    --salu-text: #fffefb;
+    --salu-text-muted: #cdc4c4;
+    --salu-success: #b5d2c8;
+    --salu-warning: #fbb255;
+    --salu-danger: #f59087;
+    --salu-focus: #b5d2c8;
     --salu-scrim: rgb(0 0 0 / 0.6);
   }
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --salu-brand: #ef9936;
-  --salu-brand-hover: #f3ad5c;
-  --salu-brand-contrast: #0b1e24;
-  --salu-surface: #0b1e24;
-  --salu-surface-raised: #132d35;
-  --salu-border: #6b8890;
-  --salu-text: #f4f1ea;
-  --salu-text-muted: #a9bec4;
-  --salu-success: #4ade80;
-  --salu-warning: #facc15;
-  --salu-danger: #fb7185;
-  --salu-focus: #a4dcd1;
+  --salu-brand: #f26924;
+  --salu-brand-hover: #f47e4d;
+  --salu-brand-contrast: #1a1717;
+  --salu-surface: #1a1717;
+  --salu-surface-raised: #342f2f;
+  --salu-border: #a49c9d;
+  --salu-text: #fffefb;
+  --salu-text-muted: #cdc4c4;
+  --salu-success: #b5d2c8;
+  --salu-warning: #fbb255;
+  --salu-danger: #f59087;
+  --salu-focus: #b5d2c8;
   --salu-scrim: rgb(0 0 0 / 0.6);
+}
+
+/* Colour layer: identical in light and dark (see the header comment). */
+:root {
+  --salu-header: #fbb255;
+  --salu-header-text: #1a1717;
+  --salu-header-muted: #342f2f;
+  --salu-on-accent: #1a1717;
+  --salu-accent-1: #f26924;
+  --salu-accent-1-soft: #ffb98e;
+  --salu-accent-2: #fbb255;
+  --salu-accent-2-soft: #fadaba;
+  --salu-accent-3: #70a095;
+  --salu-accent-3-soft: #b5d2c8;
+  --salu-accent-4: #f3787d;
+  --salu-accent-4-soft: #f8bac3;
 }
 
 @theme inline {
@@ -79,6 +109,18 @@
   --color-danger: var(--salu-danger);
   --color-focus: var(--salu-focus);
   --color-scrim: var(--salu-scrim);
+  --color-header: var(--salu-header);
+  --color-header-text: var(--salu-header-text);
+  --color-header-muted: var(--salu-header-muted);
+  --color-on-accent: var(--salu-on-accent);
+  --color-accent-1: var(--salu-accent-1);
+  --color-accent-1-soft: var(--salu-accent-1-soft);
+  --color-accent-2: var(--salu-accent-2);
+  --color-accent-2-soft: var(--salu-accent-2-soft);
+  --color-accent-3: var(--salu-accent-3);
+  --color-accent-3-soft: var(--salu-accent-3-soft);
+  --color-accent-4: var(--salu-accent-4);
+  --color-accent-4-soft: var(--salu-accent-4-soft);
 
   /* 4px spacing grid (PRD 5.6): p-1 = 4px, p-4 = 16px. */
   --spacing: 0.25rem;
@@ -88,8 +130,6 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  /* Headings and diner item names: Aleo, the brand deck's serif (ruled 2026-10-02). */
-  --font-display: var(--font-aleo), ui-serif, Georgia, serif;
 }
 
 /* Staff portal: field hints and errors at 16px, PRD 5.4's body minimum (ruled 2026-09-30).
@@ -99,11 +139,6 @@
 @layer base {
   body {
     @apply bg-surface font-sans text-text antialiased;
-  }
-  h1,
-  h2,
-  h3 {
-    @apply font-display;
   }
   :focus-visible {
     outline: 3px solid var(--salu-focus);

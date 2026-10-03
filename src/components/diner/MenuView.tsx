@@ -7,11 +7,20 @@ import { Button, buttonStyles } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
 import { Stepper } from "@/components/ui/Stepper";
 import { Textarea } from "@/components/ui/Textarea";
+import { cn } from "@/components/ui/cn";
 import { MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } from "@/lib/cart";
 import { formatCents } from "@/lib/money";
 import { CategoryTabs } from "./CategoryTabs";
 import { DietaryChips } from "./DietaryChips";
 import { useCart } from "./useCart";
+
+/** Categories rotate through the brand accents: a tinted heading pill and a matching card stripe. */
+const CATEGORY_COLOURS = [
+  { heading: "bg-accent-1-soft", stripe: "border-l-accent-1" },
+  { heading: "bg-accent-2-soft", stripe: "border-l-accent-2" },
+  { heading: "bg-accent-3-soft", stripe: "border-l-accent-3" },
+  { heading: "bg-accent-4-soft", stripe: "border-l-accent-4" },
+] as const;
 
 export type MenuViewItem = {
   id: string;
@@ -67,14 +76,20 @@ export function MenuView({
     <>
       <CategoryTabs categories={categories} />
       <div className="flex flex-col gap-8 pt-4 pb-32">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <section
             key={category.id}
             id={`section-${category.id}`}
             aria-labelledby={`heading-${category.id}`}
             className="scroll-mt-20"
           >
-            <h2 id={`heading-${category.id}`} className="mb-3 text-2xl font-semibold">
+            <h2
+              id={`heading-${category.id}`}
+              className={cn(
+                "mb-3 w-fit rounded-chip px-3.5 py-0.5 text-2xl font-semibold text-on-accent",
+                CATEGORY_COLOURS[index % CATEGORY_COLOURS.length].heading,
+              )}
+            >
               {category.name}
             </h2>
             <ul className="flex flex-col gap-3">
@@ -84,7 +99,10 @@ export function MenuView({
                     <button
                       type="button"
                       onClick={() => openItem(item)}
-                      className="flex w-full flex-col gap-1.5 rounded-card border border-border bg-surface-raised p-4 text-left"
+                      className={cn(
+                        "flex w-full flex-col gap-1.5 rounded-card border border-l-[6px] border-border bg-surface-raised p-4 text-left",
+                        CATEGORY_COLOURS[index % CATEGORY_COLOURS.length].stripe,
+                      )}
                     >
                       <ItemSummary item={item} price={money(item.price_cents)} />
                     </button>
@@ -153,7 +171,7 @@ function ItemSummary({
   return (
     <>
       <span className="flex items-start justify-between gap-3">
-        <span className="font-display text-lg font-semibold">{item.name}</span>
+        <span className="text-lg font-semibold">{item.name}</span>
         <span className="font-medium">{price}</span>
       </span>
       {item.description && <span className="line-clamp-2 text-muted">{item.description}</span>}
