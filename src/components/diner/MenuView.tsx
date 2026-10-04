@@ -12,15 +12,8 @@ import { MAX_LINE_ADDONS, MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } 
 import { formatCents } from "@/lib/money";
 import { CategoryTabs } from "./CategoryTabs";
 import { DietaryChips } from "./DietaryChips";
+import { scriptFont } from "./script-font";
 import { useCart } from "./useCart";
-
-/** Categories rotate through the brand accents: a tinted heading pill and a matching card stripe. */
-const CATEGORY_COLOURS = [
-  { heading: "bg-accent-1-soft", stripe: "border-l-accent-1" },
-  { heading: "bg-accent-2-soft", stripe: "border-l-accent-2" },
-  { heading: "bg-accent-3-soft", stripe: "border-l-accent-3" },
-  { heading: "bg-accent-4-soft", stripe: "border-l-accent-4" },
-] as const;
 
 export type MenuViewAddon = {
   id: string;
@@ -102,8 +95,8 @@ export function MenuView({
   return (
     <>
       <CategoryTabs categories={categories} />
-      <div className="flex flex-col gap-8 pt-4 pb-32">
-        {categories.map((category, index) => (
+      <div className={cn("flex flex-col gap-6 pt-4 pb-32", scriptFont.variable)}>
+        {categories.map((category) => (
           <section
             key={category.id}
             id={`section-${category.id}`}
@@ -112,29 +105,33 @@ export function MenuView({
           >
             <h2
               id={`heading-${category.id}`}
-              className={cn(
-                "mb-3 w-fit rounded-chip px-3.5 py-0.5 text-2xl font-semibold text-on-accent",
-                CATEGORY_COLOURS[index % CATEGORY_COLOURS.length].heading,
-              )}
+              className="mb-1 font-script text-[3.25rem] leading-tight font-normal"
             >
               {category.name}
             </h2>
-            <ul className="flex flex-col gap-3">
+            {/* One rounded panel per section: rows with hairline dividers, no card borders. */}
+            <ul className="flex flex-col divide-y divide-text/12 rounded-[1.375rem] bg-surface-raised px-4">
               {category.items.map((item) => (
                 <li key={item.id}>
                   {item.is_available ? (
                     <button
                       type="button"
                       onClick={() => openItem(item)}
-                      className={cn(
-                        "flex w-full flex-col gap-1.5 rounded-card border border-l-[6px] border-border bg-surface-raised p-4 text-left",
-                        CATEGORY_COLOURS[index % CATEGORY_COLOURS.length].stripe,
-                      )}
+                      className="flex w-full items-center gap-3 py-4 text-left"
                     >
-                      <ItemSummary item={item} price={money(item.price_cents)} />
+                      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <ItemSummary item={item} price={money(item.price_cents)} />
+                      </span>
+                      {/* The whole row is the button; the + only shows it adds. */}
+                      <span
+                        aria-hidden="true"
+                        className="grid size-10 shrink-0 place-items-center rounded-full bg-pop text-2xl leading-none font-semibold text-on-pop"
+                      >
+                        +
+                      </span>
                     </button>
                   ) : (
-                    <div className="flex flex-col gap-1.5 rounded-card border border-dashed border-border p-4 text-muted">
+                    <div className="flex flex-col gap-1.5 py-4 text-muted">
                       <ItemSummary item={item} price={money(item.price_cents)} soldOut />
                     </div>
                   )}
@@ -238,7 +235,7 @@ function AddonPicker({
             checked={addon.is_available && picked.has(addon.id)}
             disabled={!addon.is_available || (full && !picked.has(addon.id))}
             onChange={(e) => onToggle(addon.id, e.target.checked)}
-            className="size-5 shrink-0"
+            className="size-5 shrink-0 accent-brand"
           />
           <span className="flex-1">{addon.name}</span>
           {addon.is_available ? (
@@ -264,14 +261,16 @@ function ItemSummary({
   return (
     <>
       <span className="flex items-start justify-between gap-3">
-        <span className="text-lg font-semibold">{item.name}</span>
-        <span className="font-medium">{price}</span>
+        <span className="text-[0.9375rem] font-bold tracking-[0.03em] uppercase">{item.name}</span>
+        <span className="font-bold">{price}</span>
       </span>
       {item.description && <span className="line-clamp-2 text-muted">{item.description}</span>}
-      <span className="flex flex-wrap items-center gap-2">
-        <DietaryChips tags={item.dietary_tags} />
-        {soldOut && <Badge tone="danger">Sold out</Badge>}
-      </span>
+      {(item.dietary_tags.length > 0 || soldOut) && (
+        <span className="flex flex-wrap items-center gap-2">
+          <DietaryChips tags={item.dietary_tags} />
+          {soldOut && <Badge tone="danger">Sold out</Badge>}
+        </span>
+      )}
     </>
   );
 }

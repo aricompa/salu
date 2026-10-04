@@ -70,22 +70,18 @@ describe("theme tokens", () => {
     });
   }
 
-  describe("colour layer", () => {
+  describe("theme-independent colours", () => {
     const layer = block(":root {");
     it("is defined", () => {
-      expect(Object.keys(layer)).toContain("header");
+      expect(Object.keys(layer)).toEqual(expect.arrayContaining(["pop", "on-pop", "on-accent"]));
     });
-    for (const token of ["header-text", "header-muted"]) {
-      it(`${token} on the header band is at least 4.5:1`, () => {
-        expect(contrast(layer[token], layer.header)).toBeGreaterThanOrEqual(4.5);
-      });
-    }
+    it("the + glyph on the pop colour is at least 4.5:1", () => {
+      expect(contrast(layer["on-pop"], layer.pop)).toBeGreaterThanOrEqual(4.5);
+    });
     for (const n of [1, 2, 3, 4]) {
-      for (const fill of [`accent-${n}`, `accent-${n}-soft`]) {
-        it(`on-accent text on ${fill} is at least 4.5:1`, () => {
-          expect(contrast(layer["on-accent"], layer[fill])).toBeGreaterThanOrEqual(4.5);
-        });
-      }
+      it(`on-accent text on accent-${n} is at least 4.5:1`, () => {
+        expect(contrast(layer["on-accent"], layer[`accent-${n}`])).toBeGreaterThanOrEqual(4.5);
+      });
     }
   });
 

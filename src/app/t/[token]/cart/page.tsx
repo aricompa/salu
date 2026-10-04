@@ -17,8 +17,8 @@ export default async function CartPage({ params }: { params: Promise<{ token: st
       <OfflineBanner message="You're offline. Your cart is saved; reconnect to place your order." />
       <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-4">
         <DinerHeader>
-          <h1 className="text-2xl font-semibold">Your order</h1>
-          <p className="text-header-muted">
+          <h1 className="text-2xl font-extrabold tracking-[0.02em] uppercase">Your order</h1>
+          <p className="text-muted">
             {session.table.restaurantName} · Table {session.table.tableLabel}
           </p>
         </DinerHeader>

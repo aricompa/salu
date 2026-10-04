@@ -8,12 +8,12 @@ import { OrderCardFrame } from "./OrderCardFrame";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** Each stage has a brand accent: a filled column heading and a matching card stripe. */
-const STAGE_COLOURS: Record<ActiveStatus, { heading: string; stripe: string }> = {
-  submitted: { heading: "bg-accent-1", stripe: "border-l-accent-1" },
-  accepted: { heading: "bg-accent-2", stripe: "border-l-accent-2" },
-  preparing: { heading: "bg-accent-4", stripe: "border-l-accent-4" },
-  ready: { heading: "bg-accent-3", stripe: "border-l-accent-3" },
+/** Each stage has a brand accent on its filled column heading; the cards carry no stripe ("4a"). */
+const STAGE_COLOURS: Record<ActiveStatus, { heading: string }> = {
+  submitted: { heading: "bg-accent-1" },
+  accepted: { heading: "bg-accent-2" },
+  preparing: { heading: "bg-accent-4" },
+  ready: { heading: "bg-accent-3" },
 };
 
 function Note({ label, text }: { label: string; text: string }) {
@@ -30,12 +30,7 @@ function OrderCard({ order }: { order: BoardOrder }) {
   const next = NEXT_ACTION[status];
   const who = `${order.tableLabel}, ${order.dinerLabel}`;
   return (
-    <OrderCardFrame
-      id={order.id}
-      labelledBy={titleId}
-      waiting={status === "submitted"}
-      stripe={STAGE_COLOURS[status].stripe}
-    >
+    <OrderCardFrame id={order.id} labelledBy={titleId} waiting={status === "submitted"}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 id={titleId} className="text-3xl leading-tight font-bold">
