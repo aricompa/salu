@@ -34,7 +34,7 @@ export default async function OrderPage({
       <OfflineBanner message="You're offline. Status updates resume when you reconnect." />
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-4 pb-32">
         <DinerHeader>
-          <h1 className="text-lg font-medium">
+          <h1 className="text-lg font-extrabold tracking-[0.02em] uppercase">
             {session.table.restaurantName} · Table {session.table.tableLabel}
           </h1>
         </DinerHeader>

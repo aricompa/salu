@@ -13,9 +13,9 @@ export default function MenuLoading() {
         <Skeleton className="h-11 w-24" />
         <Skeleton className="h-11 w-24" />
       </div>
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-24 w-full" />
-      ))}
+      {/* The shape of the "4a" menu: a script title over one panel of rows. */}
+      <Skeleton className="mt-2 h-12 w-40" />
+      <Skeleton className="h-96 w-full" />
     </main>
   );
 }

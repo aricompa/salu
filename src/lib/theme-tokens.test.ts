@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
  * Guards the claims in the globals.css header: every text token meets WCAG AA
  * (4.5:1) on both surfaces, border and focus meet 3:1, button text meets 4.5:1 on
  * brand and brand-hover, and brand as a selected-state fill meets 3:1 on surface,
- * in both themes. Brand (Persimmon) is too light to be text on a light surface, so
- * no component may use it as text. Also keeps the app icon (an image route that
- * can't read CSS tokens, exception (bh)) on the light brand colour, and checks the
- * colour layer (the same in both themes): header text on the Marigold band and
- * charcoal on every accent and tint.
+ * in both themes. Brand is a fill only (rule U3), so no component may use it as
+ * text. Also keeps the app icon (an image route that can't read CSS tokens,
+ * exception (bh)) on the light brand colour, and checks the theme-independent
+ * colours: the charcoal + on the Vermillion pop, and charcoal on every board
+ * stage accent.
  */
 const css = readFileSync("src/app/globals.css", "utf8");
 

@@ -261,7 +261,7 @@ function ItemSummary({
   return (
     <>
       <span className="flex items-start justify-between gap-3">
-        <span className="text-[0.9375rem] font-bold tracking-[0.03em] uppercase">{item.name}</span>
+        <span className="text-base font-bold tracking-[0.03em] uppercase">{item.name}</span>
         <span className="font-bold">{price}</span>
       </span>
       {item.description && <span className="line-clamp-2 text-muted">{item.description}</span>}
