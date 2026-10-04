@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
  * Guards the claims in the globals.css header: every text token meets WCAG AA
  * (4.5:1) on both surfaces, border and focus meet 3:1, button text meets 4.5:1 on
  * brand and brand-hover, and brand as a selected-state fill meets 3:1 on surface,
- * in both themes. Brand (Persimmon) is too light to be text on a light surface, so
- * no component may use it as text. Also keeps the app icon (an image route that
- * can't read CSS tokens, exception (bh)) on the light brand colour, and checks the
- * colour layer (the same in both themes): header text on the Marigold band and
- * charcoal on every accent and tint.
+ * in both themes. Brand is a fill only (rule U3), so no component may use it as
+ * text. Also keeps the app icon (an image route that can't read CSS tokens,
+ * exception (bh)) on the light brand colour, and checks the theme-independent
+ * colours: the charcoal + on the Vermillion pop, and charcoal on every board
+ * stage heading.
  */
 const css = readFileSync("src/app/globals.css", "utf8");
 
@@ -70,22 +70,18 @@ describe("theme tokens", () => {
     });
   }
 
-  describe("colour layer", () => {
+  describe("theme-independent colours", () => {
     const layer = block(":root {");
     it("is defined", () => {
-      expect(Object.keys(layer)).toContain("header");
+      expect(Object.keys(layer)).toEqual(expect.arrayContaining(["pop", "on-pop", "on-stage"]));
     });
-    for (const token of ["header-text", "header-muted"]) {
-      it(`${token} on the header band is at least 4.5:1`, () => {
-        expect(contrast(layer[token], layer.header)).toBeGreaterThanOrEqual(4.5);
+    it("the + glyph on the pop colour is at least 4.5:1", () => {
+      expect(contrast(layer["on-pop"], layer.pop)).toBeGreaterThanOrEqual(4.5);
+    });
+    for (const stage of ["new", "accepted", "preparing", "ready"]) {
+      it(`stage heading text on stage-${stage} is at least 4.5:1`, () => {
+        expect(contrast(layer["on-stage"], layer[`stage-${stage}`])).toBeGreaterThanOrEqual(4.5);
       });
-    }
-    for (const n of [1, 2, 3, 4]) {
-      for (const fill of [`accent-${n}`, `accent-${n}-soft`]) {
-        it(`on-accent text on ${fill} is at least 4.5:1`, () => {
-          expect(contrast(layer["on-accent"], layer[fill])).toBeGreaterThanOrEqual(4.5);
-        });
-      }
     }
   });
 

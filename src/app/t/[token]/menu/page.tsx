@@ -27,13 +27,15 @@ export default async function MenuPage({ params }: { params: Promise<{ token: st
       <main className="mx-auto flex max-w-2xl flex-col px-4 pt-4">
         <DinerHeader className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">{table.restaurantName}</h1>
-            <p className="text-header-muted">Table {table.tableLabel}</p>
+            <h1 className="text-2xl font-extrabold tracking-[0.02em] uppercase">
+              {table.restaurantName}
+            </h1>
+            <p className="text-muted">Table {table.tableLabel}</p>
           </div>
           {activeOrderId && (
             <Link
               href={`/t/${token}/orders/${activeOrderId}`}
-              className="inline-flex min-h-11 items-center rounded-chip border border-header-text px-4 font-medium"
+              className="inline-flex min-h-11 items-center rounded-chip border border-text px-4 font-medium"
             >
               Orders
             </Link>

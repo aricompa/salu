@@ -1,12 +1,12 @@
 import { ImageResponse } from "next/og";
 
 /**
- * The app icon: a charcoal "S" on Persimmon (globals.css --salu-brand and --salu-text, light;
- * open decision 1, 2026-10-02). The pre-commit hook blocks hex outside globals.css, so the colours
+ * The app icon: a Paper White "S" on Seaglass (globals.css --salu-brand and --salu-brand-contrast,
+ * light; "4a", 2026-10-03; 8.22:1). The pre-commit hook blocks hex outside globals.css, so the colours
  * are rgb() (a logged rule U3 exception: image routes can't read CSS tokens).
  */
-export const ICON_BACKGROUND = "rgb(242, 105, 36)";
-export const ICON_FOREGROUND = "rgb(26, 23, 23)";
+export const ICON_BACKGROUND = "rgb(0, 89, 76)";
+export const ICON_FOREGROUND = "rgb(255, 254, 251)";
 
 /** Square PNG. The letter stays inside the central 80%, so it also works as a maskable icon. */
 export function appIcon(size: number): ImageResponse {

@@ -9,29 +9,29 @@
  * brand-hover; as a selected-state fill, brand meets 3:1 on surface.
  * src/lib/theme-tokens.test.ts checks all of this, and fails on text-brand.
  *
- * Palette: Saloo WT Brand Guidelines (open decision 1, 2026-10-02).
- * Persimmon #f26924 is the action colour (warm, appetising), with charcoal
- * labels because white on persimmon is 3.05:1. Seaglass #00594c is trust and
- * health ("salud"): success and focus. Marigold is attention (warnings),
+ * Palette: Saloo WT Brand Guidelines (open decision 1); roles from the "4a"
+ * ruling, 2026-10-03. Seaglass #00594c is the action colour (buttons, the
+ * selected tab) with Paper White labels (8.22:1; 4.53:1 on Seaglass 75 hover);
+ * in dark mode Seaglass 50 #70a095 with charcoal labels. It is also success and
+ * focus ("salud": trust and health). Marigold is attention (warnings),
  * Vermillion is errors. Light-theme warning #955504 and danger #bc1019 are
  * darker shades of Marigold and Vermillion (the guide has only tints).
  * Warm greys from Paper White #fffefb to Charcoal #1a1717 are the base.
  *
- * Colour layer (direction B, 2026-10-02), the same in both themes, always
- * with charcoal text (on-accent): a Marigold header band on diner pages;
- * four accents (Persimmon, Marigold, Seaglass 50, Coral) with their 25 tints,
- * rotated across menu categories (tinted heading pill, card stripe) and used
- * for the board's stages (New, Accepted, Ready, Preparing). Decoration only:
- * every coloured element also carries its text label.
+ * Theme-independent: Vermillion #f04b54 is the one pop, the fill of the
+ * diner menu's round + (charcoal glyph, 4.95:1). The board's stage headings,
+ * with charcoal text: New in Vermillion (it needs someone), Accepted in a light
+ * grey (queued), Preparing in Seaglass 25, Ready in Seaglass 50 (go). Decoration
+ * only: every coloured element also carries its text label.
  */
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --salu-brand: #f26924;
-  --salu-brand-hover: #f47e4d;
-  --salu-brand-contrast: #1a1717;
+  --salu-brand: #00594c;
+  --salu-brand-hover: #468074;
+  --salu-brand-contrast: #fffefb;
   --salu-surface: #fffefb;
-  --salu-surface-raised: #f7f5f5;
+  --salu-surface-raised: #f3eeed;
   --salu-border: #797272;
   --salu-text: #1a1717;
   --salu-text-muted: #575554;
@@ -46,8 +46,8 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --salu-brand: #f26924;
-    --salu-brand-hover: #f47e4d;
+    --salu-brand: #70a095;
+    --salu-brand-hover: #b5d2c8;
     --salu-brand-contrast: #1a1717;
     --salu-surface: #1a1717;
     --salu-surface-raised: #342f2f;
@@ -64,8 +64,8 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --salu-brand: #f26924;
-  --salu-brand-hover: #f47e4d;
+  --salu-brand: #70a095;
+  --salu-brand-hover: #b5d2c8;
   --salu-brand-contrast: #1a1717;
   --salu-surface: #1a1717;
   --salu-surface-raised: #342f2f;
@@ -81,18 +81,13 @@
 
 /* Colour layer: identical in light and dark (see the header comment). */
 :root {
-  --salu-header: #fbb255;
-  --salu-header-text: #1a1717;
-  --salu-header-muted: #342f2f;
-  --salu-on-accent: #1a1717;
-  --salu-accent-1: #f26924;
-  --salu-accent-1-soft: #ffb98e;
-  --salu-accent-2: #fbb255;
-  --salu-accent-2-soft: #fadaba;
-  --salu-accent-3: #70a095;
-  --salu-accent-3-soft: #b5d2c8;
-  --salu-accent-4: #f3787d;
-  --salu-accent-4-soft: #f8bac3;
+  --salu-pop: #f04b54;
+  --salu-on-pop: #1a1717;
+  --salu-on-stage: #1a1717;
+  --salu-stage-new: #f04b54;
+  --salu-stage-accepted: #e6e0df;
+  --salu-stage-preparing: #b5d2c8;
+  --salu-stage-ready: #70a095;
 }
 
 @theme inline {
@@ -109,18 +104,13 @@
   --color-danger: var(--salu-danger);
   --color-focus: var(--salu-focus);
   --color-scrim: var(--salu-scrim);
-  --color-header: var(--salu-header);
-  --color-header-text: var(--salu-header-text);
-  --color-header-muted: var(--salu-header-muted);
-  --color-on-accent: var(--salu-on-accent);
-  --color-accent-1: var(--salu-accent-1);
-  --color-accent-1-soft: var(--salu-accent-1-soft);
-  --color-accent-2: var(--salu-accent-2);
-  --color-accent-2-soft: var(--salu-accent-2-soft);
-  --color-accent-3: var(--salu-accent-3);
-  --color-accent-3-soft: var(--salu-accent-3-soft);
-  --color-accent-4: var(--salu-accent-4);
-  --color-accent-4-soft: var(--salu-accent-4-soft);
+  --color-pop: var(--salu-pop);
+  --color-on-pop: var(--salu-on-pop);
+  --color-on-stage: var(--salu-on-stage);
+  --color-stage-new: var(--salu-stage-new);
+  --color-stage-accepted: var(--salu-stage-accepted);
+  --color-stage-preparing: var(--salu-stage-preparing);
+  --color-stage-ready: var(--salu-stage-ready);
 
   /* 4px spacing grid (PRD 5.6): p-1 = 4px, p-4 = 16px. */
   --spacing: 0.25rem;
@@ -128,8 +118,9 @@
   --radius-card: 12px;
   --radius-chip: 999px;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-script: var(--font-ms-madi), cursive;
+  --font-mono: ui-monospace, monospace;
 }
 
 /* Staff portal: field hints and errors at 16px, PRD 5.4's body minimum (ruled 2026-09-30).
