@@ -8,5 +8,5 @@ afterEach(() => cleanup());
 // next/font only works inside the Next compiler; in tests each font the app loads is a no-op.
 vi.mock("next/font/google", () => {
   const font = () => ({ className: "", variable: "", style: {} });
-  return { Montserrat: font, Ms_Madi: font };
+  return { Montserrat: font, Dancing_Script: font };
 });

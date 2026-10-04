@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonStyles } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
@@ -9,6 +9,7 @@ import { Stepper } from "@/components/ui/Stepper";
 import { Textarea } from "@/components/ui/Textarea";
 import { cn } from "@/components/ui/cn";
 import { MAX_LINE_ADDONS, MAX_LINE_NOTES, addLine, cartStorageKey, cartTotals } from "@/lib/cart";
+import { fitFontSize } from "@/lib/fit-text";
 import { formatCents } from "@/lib/money";
 import { CategoryTabs } from "./CategoryTabs";
 import { DietaryChips } from "./DietaryChips";
@@ -103,12 +104,7 @@ export function MenuView({
             aria-labelledby={`heading-${category.id}`}
             className="scroll-mt-20"
           >
-            <h2
-              id={`heading-${category.id}`}
-              className="mb-1 font-script text-[3.25rem] leading-tight font-normal"
-            >
-              {category.name}
-            </h2>
+            <SectionTitle id={`heading-${category.id}`} name={category.name} />
             {/* One rounded panel per section: rows with hairline dividers, no card borders. */}
             <ul className="flex flex-col divide-y divide-text/12 rounded-[1.375rem] bg-surface-raised px-4">
               {category.items.map((item) => (
@@ -188,6 +184,62 @@ export function MenuView({
         </div>
       )}
     </>
+  );
+}
+
+/** Section titles start at 42px and shrink to stay on one line, never below 26px (2026-10-04). */
+const TITLE_START_PX = 42;
+const TITLE_MIN_PX = 26;
+
+/**
+ * A menu section's title in the script. The text is measured as one unbroken line and the
+ * largest size that fits the column is kept: after first paint, once the fonts load, and
+ * when the column's width changes. A name too long even at the minimum wraps onto balanced
+ * lines at the minimum instead of being cut off. Until the first fit, any overflow is
+ * clipped, never scrolled.
+ */
+function SectionTitle({ id, name }: { id: string; name: string }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  const text = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const h = heading.current;
+    const t = text.current;
+    if (!h || !t) return;
+    let column = -1;
+    const fit = (force: boolean) => {
+      if (!force && h.clientWidth === column) return;
+      column = h.clientWidth;
+      t.style.whiteSpace = "nowrap";
+      const size = fitFontSize(TITLE_START_PX, TITLE_MIN_PX, (px) => {
+        h.style.fontSize = `${px}px`;
+        return t.offsetWidth <= column;
+      });
+      h.style.fontSize = `${size ?? TITLE_MIN_PX}px`;
+      if (size === null) t.style.whiteSpace = "normal";
+    };
+    fit(true);
+    let live = true;
+    void document.fonts?.ready.then(() => live && fit(true));
+    const resized =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => fit(false));
+    if (h.parentElement) resized?.observe(h.parentElement);
+    return () => {
+      live = false;
+      resized?.disconnect();
+    };
+  }, [name]);
+
+  return (
+    <h2
+      ref={heading}
+      id={id}
+      className="mb-1 overflow-x-clip font-script text-[2.625rem] leading-tight font-medium"
+    >
+      <span ref={text} className="inline-block text-balance whitespace-nowrap">
+        {name}
+      </span>
+    </h2>
   );
 }
 
