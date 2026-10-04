@@ -119,7 +119,7 @@
   --radius-chip: 999px;
 
   --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
-  --font-script: var(--font-ms-madi), cursive;
+  --font-script: var(--font-dancing-script), cursive;
   --font-mono: ui-monospace, monospace;
 }
 
