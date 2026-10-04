@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  * text. Also keeps the app icon (an image route that can't read CSS tokens,
  * exception (bh)) on the light brand colour, and checks the theme-independent
  * colours: the charcoal + on the Vermillion pop, and charcoal on every board
- * stage accent.
+ * stage heading.
  */
 const css = readFileSync("src/app/globals.css", "utf8");
 
@@ -73,14 +73,14 @@ describe("theme tokens", () => {
   describe("theme-independent colours", () => {
     const layer = block(":root {");
     it("is defined", () => {
-      expect(Object.keys(layer)).toEqual(expect.arrayContaining(["pop", "on-pop", "on-accent"]));
+      expect(Object.keys(layer)).toEqual(expect.arrayContaining(["pop", "on-pop", "on-stage"]));
     });
     it("the + glyph on the pop colour is at least 4.5:1", () => {
       expect(contrast(layer["on-pop"], layer.pop)).toBeGreaterThanOrEqual(4.5);
     });
-    for (const n of [1, 2, 3, 4]) {
-      it(`on-accent text on accent-${n} is at least 4.5:1`, () => {
-        expect(contrast(layer["on-accent"], layer[`accent-${n}`])).toBeGreaterThanOrEqual(4.5);
+    for (const stage of ["new", "accepted", "preparing", "ready"]) {
+      it(`stage heading text on stage-${stage} is at least 4.5:1`, () => {
+        expect(contrast(layer["on-stage"], layer[`stage-${stage}`])).toBeGreaterThanOrEqual(4.5);
       });
     }
   });

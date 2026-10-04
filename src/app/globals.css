@@ -19,10 +19,10 @@
  * Warm greys from Paper White #fffefb to Charcoal #1a1717 are the base.
  *
  * Theme-independent: Vermillion #f04b54 is the one pop, the fill of the
- * diner menu's round + (charcoal glyph, 4.95:1). Four accents (Persimmon,
- * Marigold, Seaglass 50, Coral) with charcoal text mark the board's stages
- * (New, Accepted, Ready, Preparing). Decoration only: every coloured element
- * also carries its text label.
+ * diner menu's round + (charcoal glyph, 4.95:1). The board's stage headings,
+ * with charcoal text: New in Vermillion (it needs someone), Accepted in a light
+ * grey (queued), Preparing in Seaglass 25, Ready in Seaglass 50 (go). Decoration
+ * only: every coloured element also carries its text label.
  */
 :root,
 [data-theme="light"] {
@@ -83,11 +83,11 @@
 :root {
   --salu-pop: #f04b54;
   --salu-on-pop: #1a1717;
-  --salu-on-accent: #1a1717;
-  --salu-accent-1: #f26924;
-  --salu-accent-2: #fbb255;
-  --salu-accent-3: #70a095;
-  --salu-accent-4: #f3787d;
+  --salu-on-stage: #1a1717;
+  --salu-stage-new: #f04b54;
+  --salu-stage-accepted: #e6e0df;
+  --salu-stage-preparing: #b5d2c8;
+  --salu-stage-ready: #70a095;
 }
 
 @theme inline {
@@ -106,11 +106,11 @@
   --color-scrim: var(--salu-scrim);
   --color-pop: var(--salu-pop);
   --color-on-pop: var(--salu-on-pop);
-  --color-on-accent: var(--salu-on-accent);
-  --color-accent-1: var(--salu-accent-1);
-  --color-accent-2: var(--salu-accent-2);
-  --color-accent-3: var(--salu-accent-3);
-  --color-accent-4: var(--salu-accent-4);
+  --color-on-stage: var(--salu-on-stage);
+  --color-stage-new: var(--salu-stage-new);
+  --color-stage-accepted: var(--salu-stage-accepted);
+  --color-stage-preparing: var(--salu-stage-preparing);
+  --color-stage-ready: var(--salu-stage-ready);
 
   /* 4px spacing grid (PRD 5.6): p-1 = 4px, p-4 = 16px. */
   --spacing: 0.25rem;
